@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { X, LayoutDashboard, CalendarCheck, Calendar, BarChart3, Settings } from 'lucide-react'
+import { X, LayoutDashboard, CalendarCheck, Calendar, BarChart3, Train, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useUIStore } from '@/stores/uiStore'
 import { cn } from '@/lib/utils'
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/today', icon: CalendarCheck, label: '오늘' },
   { to: '/planning', icon: Calendar, label: '주간 계획' },
   { to: '/review', icon: BarChart3, label: '회고' },
+  { to: '/commute', icon: Train, label: '출퇴근' },
   { to: '/settings', icon: Settings, label: '설정' },
 ]
 
