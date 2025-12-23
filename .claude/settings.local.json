@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir)",
+      "Bash(grep:*)",
+      "Bash(if [ -d \"docs\" ])",
+      "Bash(then ls -la docs)",
+      "Bash(fi)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
