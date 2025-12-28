@@ -12,6 +12,8 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token
+
+  console.log('token : ',token)
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -22,8 +24,8 @@ apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
     if (error.response?.status === 401) {
-      useAuthStore.getState().logout()
-      window.location.href = '/login'
+      // useAuthStore.getState().logout()
+      // window.location.href = '/login'
     }
     return Promise.reject(error.response?.data?.error || error)
   }

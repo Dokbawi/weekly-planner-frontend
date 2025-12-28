@@ -50,8 +50,9 @@ export default function Today() {
   }
 
   const handleStatusChange = async (taskId: string, status: TaskStatus) => {
+    if (!currentPlan) return
     try {
-      await taskApi.updateStatus(taskId, status)
+      await taskApi.updateStatus(currentPlan.id, taskId, status)
       loadPlan()
     } catch (error) {
       console.error(error)
@@ -70,8 +71,7 @@ export default function Today() {
   }) => {
     if (!currentPlan) return
     try {
-      const request: CreateTaskRequest = {
-        date: dateStr,
+      const request = {
         title: data.title,
         description: data.description,
         scheduledTime: data.scheduledTime || undefined,
@@ -81,7 +81,7 @@ export default function Today() {
           ? { enabled: true, minutesBefore: data.reminderMinutes || 10 }
           : undefined,
       }
-      await taskApi.create(currentPlan.id, request)
+      await taskApi.create(currentPlan.id, dateStr, request)
       setIsFormOpen(false)
       loadPlan()
       toast({ title: '할 일이 추가되었습니다' })
@@ -101,7 +101,7 @@ export default function Today() {
     reminderMinutes?: number
     reason?: string
   }) => {
-    if (!editingTask) return
+    if (!editingTask || !currentPlan) return
     try {
       const request: UpdateTaskRequest = {
         title: data.title,
@@ -114,7 +114,7 @@ export default function Today() {
           : undefined,
         reason: data.reason,
       }
-      await taskApi.update(editingTask.id, request)
+      await taskApi.update(currentPlan.id, editingTask.id, request)
       setEditingTask(null)
       loadPlan()
       toast({ title: '수정되었습니다' })
@@ -125,9 +125,9 @@ export default function Today() {
   }
 
   const handleMoveTask = async (targetDate: string, reason?: string) => {
-    if (!movingTask) return
+    if (!movingTask || !currentPlan) return
     try {
-      await taskApi.move(movingTask.id, targetDate, reason)
+      await taskApi.move(currentPlan.id, movingTask.id, targetDate, reason)
       setMovingTask(null)
       loadPlan()
       toast({ title: '이동되었습니다' })
@@ -139,8 +139,9 @@ export default function Today() {
 
   const handleDeleteTask = async (taskId: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return
+    if (!currentPlan) return
     try {
-      await taskApi.delete(taskId)
+      await taskApi.delete(currentPlan.id, taskId)
       loadPlan()
       toast({ title: '삭제되었습니다' })
     } catch (error) {

@@ -36,13 +36,43 @@ export default function Login() {
     setIsLoading(true)
     try {
       const response = await authApi.login(data)
-      setAuth(response.data.token, response.data.user)
-      navigate('/')
-    } catch {
+      console.log('Login response:', response) // 디버깅
+
+      // accessToken 형식으로 변경
+      const token = response.data.accessToken
+
+      // user 정보가 없다면 /auth/me로 조회
+      let user = response.data.user
+      if (!user) {
+        // 토큰을 먼저 저장해야 /auth/me 호출 가능
+        useAuthStore.getState().setAuth(token, { id: '', email: data.email, name: '' })
+
+        try {
+          const meResponse = await authApi.getMe()
+          user = meResponse.data
+        } catch (error) {
+          console.error('Failed to get user info:', error)
+          // 사용자 정보 조회 실패해도 로그인은 성공으로 처리
+          user = { id: '', email: data.email, name: data.email.split('@')[0] }
+        }
+      }
+
+      setAuth(token, user)
+      toast({
+        title: '로그인 성공',
+        description: '환영합니다!',
+      })
+
+      // setTimeout를 추가하여 상태 업데이트 후 네비게이션
+      setTimeout(() => {
+        navigate('/')
+      }, 100)
+    } catch (error: any) {
+      console.error('Login error:', error) // 디버깅
       toast({
         variant: 'destructive',
         title: '로그인 실패',
-        description: '이메일 또는 비밀번호를 확인하세요',
+        description: error?.message || '이메일 또는 비밀번호를 확인하세요',
       })
     } finally {
       setIsLoading(false)

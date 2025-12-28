@@ -59,8 +59,9 @@ export default function Planning() {
   }
 
   const handleTaskMove = async (taskId: string, _fromDate: string, toDate: string) => {
+    if (!currentPlan) return
     try {
-      await taskApi.move(taskId, toDate)
+      await taskApi.move(currentPlan.id, taskId, toDate)
       loadPlan()
     } catch (error) {
       console.error(error)
@@ -79,8 +80,7 @@ export default function Planning() {
   }) => {
     if (!currentPlan || !selectedDate) return
     try {
-      const request: CreateTaskRequest = {
-        date: selectedDate,
+      const request = {
         title: data.title,
         description: data.description,
         scheduledTime: data.scheduledTime || undefined,
@@ -90,7 +90,7 @@ export default function Planning() {
           ? { enabled: true, minutesBefore: data.reminderMinutes || 10 }
           : undefined,
       }
-      await taskApi.create(currentPlan.id, request)
+      await taskApi.create(currentPlan.id, selectedDate, request)
       setIsFormOpen(false)
       setSelectedDate(null)
       loadPlan()
@@ -102,8 +102,9 @@ export default function Planning() {
   }
 
   const handleStatusChange = async (taskId: string, status: TaskStatus) => {
+    if (!currentPlan) return
     try {
-      await taskApi.updateStatus(taskId, status)
+      await taskApi.updateStatus(currentPlan.id, taskId, status)
       loadPlan()
     } catch (error) {
       console.error(error)
@@ -113,8 +114,9 @@ export default function Planning() {
 
   const handleDeleteTask = async (taskId: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return
+    if (!currentPlan) return
     try {
-      await taskApi.delete(taskId)
+      await taskApi.delete(currentPlan.id, taskId)
       loadPlan()
     } catch (error) {
       console.error(error)
@@ -123,9 +125,9 @@ export default function Planning() {
   }
 
   const handleMoveTaskDialog = async (targetDate: string, reason?: string) => {
-    if (!movingTask) return
+    if (!movingTask || !currentPlan) return
     try {
-      await taskApi.move(movingTask.id, targetDate, reason)
+      await taskApi.move(currentPlan.id, movingTask.id, targetDate, reason)
       setMovingTask(null)
       loadPlan()
     } catch (error) {
@@ -215,9 +217,9 @@ export default function Planning() {
         open={!!editingTask}
         onClose={() => setEditingTask(null)}
         onSubmit={async (data) => {
-          if (!editingTask) return
+          if (!editingTask || !currentPlan) return
           try {
-            await taskApi.update(editingTask.id, {
+            await taskApi.update(currentPlan.id, editingTask.id, {
               title: data.title,
               description: data.description,
               scheduledTime: data.scheduledTime,

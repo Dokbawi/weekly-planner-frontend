@@ -13,9 +13,10 @@ interface RegisterRequest {
 }
 
 interface LoginResponse {
-  token: string
-  expiresAt: string
-  user: User
+  accessToken: string
+  tokenType: string
+  expiresIn: number
+  user?: User  // user 정보는 /auth/me로 별도 조회 필요할 수도 있음
 }
 
 export const authApi = {

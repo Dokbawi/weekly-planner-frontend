@@ -10,15 +10,26 @@ import Settings from '@/pages/Settings'
 import Commute from '@/pages/Commute'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
+import { useEffect } from 'react'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />
+
+  useEffect(() => {
+    console.log('PrivateRoute - isAuthenticated:', isAuthenticated)
+  }, [isAuthenticated])
+
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  return isAuthenticated ? <Navigate to="/" /> : <>{children}</>
+
+  useEffect(() => {
+    console.log('PublicRoute - isAuthenticated:', isAuthenticated)
+  }, [isAuthenticated])
+
+  return isAuthenticated ? <Navigate to="/" replace /> : <>{children}</>
 }
 
 export default function App() {
