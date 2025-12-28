@@ -5,8 +5,10 @@ React + TypeScript 기반 웹 프론트엔드
 ## 프로젝트 상태
 
 **구현 완료** ✅ - 2025년 12월 22일
+**API 통합 수정** 🔧 - 2025년 12월 28일
 
 모든 핵심 기능이 구현되었으며, 추가로 출퇴근 시간 계산 기능이 포함되었습니다.
+백엔드 API 스펙에 맞춰 프론트엔드 API 호출을 전면 수정했습니다.
 
 ## Quick Start
 
@@ -34,6 +36,15 @@ npm run lint
 ```env
 VITE_API_URL=http://localhost:8080/api/v1
 ```
+
+### 최근 변경사항 (2025-12-28)
+
+- **API 통합 수정**
+  - JWT 토큰: `token` → `accessToken` 필드명 변경
+  - Task API: 모든 엔드포인트에 `planId` 파라미터 추가
+  - Task 생성: `date`를 query parameter로 전달
+  - 알림 API: 읽음 처리 메서드 PUT → POST 변경
+  - 401 에러: 자동 로그아웃 비활성화 (디버깅용)
 
 ## 프로젝트 개요
 
@@ -396,7 +407,7 @@ interface User {
 }
 
 interface AuthState {
-  token: string | null;
+  token: string | null;  // JWT accessToken
   user: User | null;
   isAuthenticated: boolean;
   setAuth: (token: string, user: User) => void;
@@ -580,20 +591,21 @@ import { Task, CreateTaskRequest, UpdateTaskRequest } from '@/types';
 import { ApiResponse } from '@/types/api';
 
 export const taskApi = {
-  create: (planId: string, data: CreateTaskRequest) =>
-    apiClient.post<ApiResponse<Task>>(`/plans/${planId}/tasks`, data),
+  // 모든 Task 작업은 planId가 필요 (백엔드 API 스펙)
+  create: (planId: string, date: string, data: Omit<CreateTaskRequest, 'date'>) =>
+    apiClient.post<ApiResponse<Task>>(`/plans/${planId}/tasks?date=${date}`, data),
 
-  update: (taskId: string, data: UpdateTaskRequest) =>
-    apiClient.put<ApiResponse<Task>>(`/tasks/${taskId}`, data),
+  update: (planId: string, taskId: string, data: UpdateTaskRequest) =>
+    apiClient.put<ApiResponse<Task>>(`/plans/${planId}/tasks/${taskId}`, data),
 
-  updateStatus: (taskId: string, status: string, reason?: string) =>
-    apiClient.put<ApiResponse<Task>>(`/tasks/${taskId}/status`, { status, reason }),
+  updateStatus: (planId: string, taskId: string, status: string, reason?: string) =>
+    apiClient.put<ApiResponse<Task>>(`/plans/${planId}/tasks/${taskId}`, { status, reason }),
 
-  move: (taskId: string, targetDate: string, reason?: string) =>
-    apiClient.put<ApiResponse<Task>>(`/tasks/${taskId}/move`, { targetDate, reason }),
+  move: (planId: string, taskId: string, targetDate: string, reason?: string) =>
+    apiClient.post<ApiResponse<Task>>(`/plans/${planId}/tasks/${taskId}/move`, { targetDate, reason }),
 
-  delete: (taskId: string, reason?: string) =>
-    apiClient.delete(`/tasks/${taskId}`, { params: { reason } }),
+  delete: (planId: string, taskId: string, reason?: string) =>
+    apiClient.delete(`/plans/${planId}/tasks/${taskId}`, { params: { reason } }),
 };
 ```
 
