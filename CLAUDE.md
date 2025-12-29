@@ -41,10 +41,21 @@ VITE_API_URL=http://localhost:8080/api/v1
 
 - **API 통합 수정**
   - JWT 토큰: `token` → `accessToken` 필드명 변경
-  - Task API: 모든 엔드포인트에 `planId` 파라미터 추가
-  - Task 생성: `date`를 query parameter로 전달
+  - Task API: 모든 엔드포인트에 `planId` 파라미터 필수 추가
+  - Task 생성: `date`를 query parameter로 전달 (`/plans/{planId}/tasks?date=yyyy-MM-dd`)
   - 알림 API: 읽음 처리 메서드 PUT → POST 변경
-  - 401 에러: 자동 로그아웃 비활성화 (디버깅용)
+  - 백엔드 미구현 엔드포인트 자동 폴백 제거:
+    - `/plans/current` → `/plans` 목록에서 현재 주 찾기
+    - `/today` → `/plans` 목록에서 현재 주 찾기
+    - `/reviews/current` → `/reviews` 목록에서 현재 주 찾기
+
+- **테스트 파일 추가**
+  - `test-api.js` - Node.js 기반 API 테스트 스크립트
+  - `test-api-endpoints.html` - 브라우저 기반 API 테스트 페이지
+
+- **서브모듈 설정**
+  - `docs/` 서브모듈 정상 연결 확인
+  - API 스펙, UI 스펙, 도메인 모델 참조 가능
 
 ## 프로젝트 개요
 
@@ -130,6 +141,14 @@ VITE_API_URL=http://localhost:8080/api/v1
 ## 프로젝트 구조
 
 ```
+# 프로젝트 루트
+.
+├── src/                         # 소스 코드
+├── docs/                        # 서브모듈 (스펙 문서)
+├── test-api.js                  # Node.js API 테스트 스크립트
+├── test-api-endpoints.html      # 브라우저 API 테스트 페이지
+└── ...
+
 src/
 ├── main.tsx
 ├── App.tsx
@@ -138,11 +157,11 @@ src/
 ├── api/
 │   ├── client.ts                # Axios 인스턴스 + 인터셉터
 │   ├── auth.ts                  # 인증 API
-│   ├── plans.ts                 # 주간 계획 API
-│   ├── tasks.ts                 # Task API
+│   ├── plans.ts                 # 주간 계획 API (워크어라운드 포함)
+│   ├── tasks.ts                 # Task API (planId 필수)
 │   ├── notifications.ts         # 알림 API
-│   ├── reviews.ts               # 회고 API
-│   ├── today.ts                 # 오늘 할 일 API
+│   ├── reviews.ts               # 회고 API (워크어라운드 포함)
+│   ├── today.ts                 # 오늘 할 일 API (워크어라운드 포함)
 │   └── commute.ts               # 출퇴근 시간 API
 │
 ├── types/
@@ -237,6 +256,106 @@ src/
     ├── routes.ts
     └── config.ts
 ```
+
+---
+
+## API 통합 현황 및 워크어라운드
+
+### 백엔드 미구현 엔드포인트
+
+다음 엔드포인트들은 백엔드에 아직 구현되지 않았습니다:
+
+1. **`GET /plans/current`** - 현재 주간 계획 조회
+   - **워크어라운드**: `GET /plans` 목록을 가져와서 `weekStartDate`가 현재 주에 해당하는 plan 찾기
+   - **구현 위치**: `src/api/plans.ts`
+
+2. **`GET /today`** - 오늘의 할 일 조회
+   - **워크어라운드**: `GET /plans`로 현재 주 plan을 찾고 `dailyPlans`에서 오늘 날짜 추출
+   - **구현 위치**: `src/api/today.ts`
+
+3. **`GET /reviews/current`** - 현재 주 회고 조회
+   - **워크어라운드**: `GET /reviews` 목록을 가져와서 `weekStartDate`가 현재 주에 해당하는 review 찾기
+   - **구현 위치**: `src/api/reviews.ts`
+
+### Task API 필수 파라미터
+
+모든 Task 관련 API는 `planId`를 필수로 요구합니다:
+
+```typescript
+// Task 생성 - date를 query parameter로 전달
+POST /plans/{planId}/tasks?date=yyyy-MM-dd
+{
+  "title": "할 일",
+  "description": "설명",
+  "priority": "MEDIUM"
+  // ... 기타 필드
+}
+
+// Task 수정
+PUT /plans/{planId}/tasks/{taskId}
+{
+  "title": "수정된 제목",
+  "reason": "변경 사유"
+}
+
+// Task 상태 변경
+PUT /plans/{planId}/tasks/{taskId}
+{
+  "status": "COMPLETED",
+  "reason": "완료"
+}
+
+// Task 이동
+POST /plans/{planId}/tasks/{taskId}/move
+{
+  "targetDate": "2025-12-30",
+  "reason": "다음 날로 이동"
+}
+
+// Task 삭제
+DELETE /plans/{planId}/tasks/{taskId}?reason=삭제사유
+```
+
+### 알림 API 변경
+
+알림 읽음 처리 메서드가 변경되었습니다:
+
+```typescript
+// 이전 (미구현)
+PUT /notifications/{id}/read
+
+// 현재 (구현됨)
+POST /notifications/{id}/read
+```
+
+### 인증 토큰 필드명
+
+로그인/회원가입 응답에서 토큰 필드명이 변경되었습니다:
+
+```typescript
+// 응답 구조
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJhbGc...",  // 이전: "token"
+    "user": {
+      "id": "user-id",
+      "email": "user@example.com",
+      "name": "사용자"
+    }
+  }
+}
+```
+
+### 백엔드 TODO
+
+프론트엔드가 정상적으로 작동하려면 다음 엔드포인트를 백엔드에 구현해야 합니다:
+
+- [ ] `GET /plans/current` - 현재 주간 계획 직접 조회
+- [ ] `GET /today` - 오늘의 할 일 직접 조회
+- [ ] `GET /reviews/current` - 현재 주 회고 직접 조회
+
+또는 현재의 워크어라운드(목록 조회 후 필터링)를 계속 사용할 수 있습니다.
 
 ---
 
@@ -849,8 +968,9 @@ export default function Today() {
   };
 
   const handleStatusChange = async (taskId: string, status: string) => {
+    if (!currentPlan) return;
     try {
-      await taskApi.updateStatus(taskId, status);
+      await taskApi.updateStatus(currentPlan.id, taskId, status);
       loadPlan();
     } catch (error) {
       console.error(error);
@@ -860,7 +980,8 @@ export default function Today() {
   const handleAddTask = async (data: CreateTaskRequest) => {
     if (!currentPlan) return;
     try {
-      await taskApi.create(currentPlan.id, { ...data, date: dateStr });
+      // planId와 date를 별도로 전달
+      await taskApi.create(currentPlan.id, dateStr, data);
       setIsFormOpen(false);
       loadPlan();
     } catch (error) {
@@ -901,7 +1022,10 @@ export default function Today() {
         onStatusChange={handleStatusChange}
         onEdit={(task) => {/* 편집 모달 */}}
         onMove={(task) => {/* 이동 모달 */}}
-        onDelete={(taskId) => taskApi.delete(taskId).then(loadPlan)}
+        onDelete={(taskId) => {
+          if (!currentPlan) return;
+          taskApi.delete(currentPlan.id, taskId).then(loadPlan);
+        }}
       />
 
       {/* 추가 버튼 */}
@@ -1136,7 +1260,7 @@ export function WeekCalendar() {
     const { active, over } = event;
     setActiveTask(null);
 
-    if (!over) return;
+    if (!over || !currentPlan) return;
 
     const taskId = active.id as string;
     const targetDate = over.id as string;
@@ -1145,7 +1269,8 @@ export function WeekCalendar() {
     if (sourceDate === targetDate) return;
 
     try {
-      await taskApi.move(taskId, targetDate);
+      // planId 필수 전달
+      await taskApi.move(currentPlan.id, taskId, targetDate);
       // Plan 리로드
     } catch (error) {
       console.error(error);
@@ -1363,6 +1488,19 @@ export default {
    - 드래그 앤 드롭 단계 순서 변경
    - 로컬 스토리지 저장
 
+### ✅ Phase 7: API 통합 및 테스트 (완료)
+22. ✅ 백엔드 API 스펙에 맞춰 API 호출 수정
+   - Task API에 planId 파라미터 추가
+   - 인증 토큰 필드명 변경 (token → accessToken)
+   - 알림 읽음 처리 메서드 변경 (PUT → POST)
+23. ✅ 백엔드 미구현 엔드포인트 워크어라운드 구현
+   - `/plans/current` → `/plans` 목록에서 필터링
+   - `/today` → `/plans` 목록에서 필터링
+   - `/reviews/current` → `/reviews` 목록에서 필터링
+24. ✅ API 테스트 도구 추가
+   - Node.js 기반 테스트 스크립트
+   - 브라우저 기반 테스트 페이지
+
 ---
 
 ## Git Submodule 설정
@@ -1436,7 +1574,7 @@ export function CompletionChart({ dailyBreakdown }) {
 
 ### 실제 구현 사항
 
-이 프로젝트는 2025년 12월 22일에 완전히 구현되었습니다. 위에 설명된 모든 컴포넌트와 기능이 실제로 작동하는 코드로 구현되어 있습니다.
+이 프로젝트는 2025년 12월 22일에 완전히 구현되었으며, 2025년 12월 28일에 백엔드 API 스펙에 맞춰 전면 수정되었습니다.
 
 **주요 구현 특징:**
 - **89개 파일** 생성 (11,000+ 줄의 코드)
@@ -1455,10 +1593,18 @@ export function CompletionChart({ dailyBreakdown }) {
 - 반응형 모바일 네비게이션
 - 로딩/에러 상태 처리
 
-**백엔드 통합:**
+**백엔드 통합 (2025-12-28 업데이트):**
 - API 클라이언트는 `VITE_API_URL` 환경 변수로 설정
 - 모든 API 호출은 axios 인터셉터를 통해 자동으로 JWT 토큰 추가
 - 401 에러 시 자동 로그아웃 및 로그인 페이지 리다이렉트
+- **Task API**: 모든 엔드포인트에 `planId` 파라미터 필수 전달
+- **인증**: `accessToken` 필드명 사용 (이전: `token`)
+- **알림**: 읽음 처리 `POST` 메서드 사용 (이전: `PUT`)
+- **워크어라운드**: 백엔드 미구현 엔드포인트(`/plans/current`, `/today`, `/reviews/current`)는 목록 조회 후 필터링으로 대체
+
+**테스트 도구:**
+- `test-api.js` - Node.js 기반 API 엔드포인트 테스트 스크립트
+- `test-api-endpoints.html` - 브라우저 기반 인터랙티브 API 테스트 페이지
 
 ### 다음 단계 (선택사항)
 
