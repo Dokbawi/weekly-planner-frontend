@@ -19,18 +19,49 @@ export const planApi = {
   getById: (planId: string): Promise<ApiResponse<WeeklyPlan>> =>
     apiClient.get(`/plans/${planId}`),
 
-  // 현재 주 계획 조회 (없으면 자동 생성) - 백엔드에 따라 다를 수 있음
-  getCurrent: (): Promise<ApiResponse<WeeklyPlan>> =>
-    apiClient.get('/plans/current').catch(async (error) => {
-      // 현재 주 계획이 없으면 생성 시도
+  // 현재 주 계획 조회 (없으면 자동 생성)
+  getCurrent: async (): Promise<ApiResponse<WeeklyPlan>> => {
+    // 현재 주의 월요일 날짜 계산
+    const today = new Date()
+    const dayOfWeek = today.getDay()
+    const monday = new Date(today)
+    monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
+    monday.setHours(0, 0, 0, 0)
+    const weekStartDate = monday.toISOString().split('T')[0]
+
+    try {
+      // 먼저 /plans/current 시도 (백엔드가 지원하는 경우)
+      return await apiClient.get('/plans/current')
+    } catch (error: any) {
       if (error?.response?.status === 404) {
-        const monday = new Date()
-        monday.setDate(monday.getDate() - monday.getDay() + 1)
-        const weekStartDate = monday.toISOString().split('T')[0]
-        return apiClient.post('/plans', { weekStartDate })
+        try {
+          // /plans/current가 없으면 목록에서 현재 주 계획 찾기
+          const response = await apiClient.get('/plans', {
+            params: { page: 0, size: 10 }
+          })
+
+          if (response.content && response.content.length > 0) {
+            // 현재 주에 해당하는 계획 찾기
+            const currentPlan = response.content.find((plan: WeeklyPlan) =>
+              plan.weekStartDate === weekStartDate
+            )
+
+            if (currentPlan) {
+              return { success: true, data: currentPlan }
+            }
+          }
+
+          // 현재 주 계획이 없으면 새로 생성
+          return await apiClient.post('/plans', { weekStartDate })
+        } catch (listError) {
+          console.error('Failed to get or create current plan:', listError)
+          // 최후의 수단으로 새 계획 생성 시도
+          return await apiClient.post('/plans', { weekStartDate })
+        }
       }
       throw error
-    }),
+    }
+  },
 
   // 계획 확정
   confirm: (planId: string): Promise<ApiResponse<WeeklyPlan>> =>
