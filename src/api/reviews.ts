@@ -3,35 +3,22 @@ import { ApiResponse, WeeklyReview } from '@/types'
 
 export const reviewApi = {
   // 현재 주 회고 조회
+  // NOTE: /reviews/current 엔드포인트가 백엔드에 구현되어야 함
+  // 임시로 현재 계획의 회고를 조회
   getCurrent: async (): Promise<ApiResponse<WeeklyReview>> => {
     try {
-      // 먼저 /reviews/current 시도 (백엔드가 지원하는 경우)
-      return await apiClient.get('/reviews/current')
-    } catch (error: any) {
-      if (error?.response?.status === 404) {
-        try {
-          // /reviews/current가 없으면 현재 주 계획을 통해 회고 조회
-          const { planApi } = await import('./plans')
-          const planResponse = await planApi.getCurrent()
-          const planId = planResponse.data?.id
+      // 현재 주 계획을 통해 회고 조회
+      const { planApi } = await import('./plans')
+      const planResponse = await planApi.getCurrent()
+      const planId = planResponse.data?.id
 
-          if (planId) {
-            return await apiClient.get(`/plans/${planId}/review`)
-          }
-
-          // 회고 데이터가 없는 경우 빈 응답 반환
-          return {
-            success: false,
-            error: { code: 'NO_REVIEW', message: 'No review data available' }
-          } as any
-        } catch (e) {
-          console.error('Failed to get review:', e)
-          return {
-            success: false,
-            error: { code: 'REVIEW_ERROR', message: 'Failed to load review' }
-          } as any
-        }
+      if (planId) {
+        return await apiClient.get(`/plans/${planId}/review`)
       }
+
+      throw new Error('No current plan found')
+    } catch (error) {
+      console.error('Failed to get current review:', error)
       throw error
     }
   },
