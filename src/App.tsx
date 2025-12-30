@@ -33,6 +33,28 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  // 앱 시작 시 초기 상태 확인
+  useEffect(() => {
+    const state = useAuthStore.getState()
+    console.log('App initialized - Auth State:', {
+      token: state.token,
+      user: state.user,
+      isAuthenticated: state.isAuthenticated
+    })
+
+    const stored = localStorage.getItem('auth-storage')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        console.log('App initialized - LocalStorage:', parsed)
+      } catch (e) {
+        console.error('Failed to parse stored auth:', e)
+      }
+    } else {
+      console.log('App initialized - No auth data in localStorage')
+    }
+  }, [])
+
   return (
     <BrowserRouter>
       <Routes>

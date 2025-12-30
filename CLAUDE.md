@@ -515,24 +515,13 @@ export interface ScheduleStep {
 ## 상태 관리 (stores/)
 
 ### authStore.ts
+
+JWT 토큰 기반 인증 상태 관리 (Zustand + persist middleware)
+
+**구현 파일**: `src/stores/authStore.ts`
+
 ```typescript
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-}
-
-interface AuthState {
-  token: string | null;  // JWT accessToken
-  user: User | null;
-  isAuthenticated: boolean;
-  setAuth: (token: string, user: User) => void;
-  logout: () => void;
-}
-
+// src/stores/authStore.ts:14-26
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -540,192 +529,67 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       setAuth: (token, user) => set({ token, user, isAuthenticated: true }),
-      logout: () => set({ token: null, user: null, isAuthenticated: false }),
+      // ...
     }),
     { name: 'auth-storage' }
   )
-);
+)
 ```
 
 ### planStore.ts
-```typescript
-import { create } from 'zustand';
-import { WeeklyPlan, Task } from '@/types';
 
-interface PlanState {
-  currentPlan: WeeklyPlan | null;
-  isLoading: boolean;
-  error: string | null;
+주간 계획 상태 관리 (Zustand)
 
-  setPlan: (plan: WeeklyPlan) => void;
-  updateTask: (date: string, task: Task) => void;
-  addTask: (date: string, task: Task) => void;
-  removeTask: (date: string, taskId: string) => void;
-  moveTask: (fromDate: string, toDate: string, taskId: string) => void;
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-  clearPlan: () => void;
-}
+**구현 파일**: `src/stores/planStore.ts` (lines 19-124)
 
-export const usePlanStore = create<PlanState>((set) => ({
-  currentPlan: null,
-  isLoading: false,
-  error: null,
+주요 기능:
+- `setPlan`: 현재 주간 계획 설정
+- `updateTask`: 특정 날짜의 Task 업데이트
+- `addTask`: 특정 날짜에 Task 추가
+- `removeTask`: Task 삭제
+- `moveTask`: Task를 다른 날짜로 이동
 
-  setPlan: (plan) => set({ currentPlan: plan }),
-
-  updateTask: (date, task) => set((state) => {
-    if (!state.currentPlan) return state;
-    const dailyPlan = state.currentPlan.dailyPlans[date];
-    if (!dailyPlan) return state;
-
-    return {
-      currentPlan: {
-        ...state.currentPlan,
-        dailyPlans: {
-          ...state.currentPlan.dailyPlans,
-          [date]: {
-            ...dailyPlan,
-            tasks: dailyPlan.tasks.map(t => t.id === task.id ? task : t)
-          }
-        }
-      }
-    };
-  }),
-
-  addTask: (date, task) => set((state) => {
-    if (!state.currentPlan) return state;
-    const dailyPlan = state.currentPlan.dailyPlans[date] || { date, tasks: [] };
-    return {
-      currentPlan: {
-        ...state.currentPlan,
-        dailyPlans: {
-          ...state.currentPlan.dailyPlans,
-          [date]: {
-            ...dailyPlan,
-            tasks: [...dailyPlan.tasks, task]
-          }
-        }
-      }
-    };
-  }),
-
-  removeTask: (date, taskId) => set((state) => {
-    if (!state.currentPlan) return state;
-    const dailyPlan = state.currentPlan.dailyPlans[date];
-    if (!dailyPlan) return state;
-
-    return {
-      currentPlan: {
-        ...state.currentPlan,
-        dailyPlans: {
-          ...state.currentPlan.dailyPlans,
-          [date]: {
-            ...dailyPlan,
-            tasks: dailyPlan.tasks.filter(t => t.id !== taskId)
-          }
-        }
-      }
-    };
-  }),
-
-  moveTask: (fromDate, toDate, taskId) => set((state) => {
-    if (!state.currentPlan) return state;
-    const fromDailyPlan = state.currentPlan.dailyPlans[fromDate];
-    if (!fromDailyPlan) return state;
-
-    const task = fromDailyPlan.tasks.find(t => t.id === taskId);
-    if (!task) return state;
-
-    const toDailyPlan = state.currentPlan.dailyPlans[toDate] || { date: toDate, tasks: [] };
-
-    return {
-      currentPlan: {
-        ...state.currentPlan,
-        dailyPlans: {
-          ...state.currentPlan.dailyPlans,
-          [fromDate]: {
-            ...fromDailyPlan,
-            tasks: fromDailyPlan.tasks.filter(t => t.id !== taskId)
-          },
-          [toDate]: {
-            ...toDailyPlan,
-            tasks: [...toDailyPlan.tasks, task]
-          }
-        }
-      }
-    };
-  }),
-
-  setLoading: (loading) => set({ isLoading: loading }),
-  setError: (error) => set({ error }),
-  clearPlan: () => set({ currentPlan: null, error: null }),
-}));
-```
+전체 구현은 파일 참조.
 
 ---
 
 ## API 클라이언트 (api/)
 
 ### client.ts
+
+Axios 인스턴스 + 인터셉터 설정
+
+**구현 파일**: `src/api/client.ts` (lines 1-33)
+
+주요 기능:
+- Request 인터셉터: JWT 토큰 자동 추가
+- Response 인터셉터: 401 에러 시 자동 로그아웃
+
 ```typescript
-import axios from 'axios';
-import { useAuthStore } from '@/stores/authStore';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
-
-export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Request 인터셉터 - 토큰 추가
+// src/api/client.ts:13-21
 apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
+  const token = useAuthStore.getState().token
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers.Authorization = `Bearer ${token}`
   }
-  return config;
-});
-
-// Response 인터셉터 - 에러 처리
-apiClient.interceptors.response.use(
-  (response) => response.data,
-  (error) => {
-    if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
-      window.location.href = '/login';
-    }
-    return Promise.reject(error.response?.data?.error || error);
-  }
-);
+  return config
+})
 ```
 
 ### tasks.ts
+
+Task API 호출 함수들 (모든 엔드포인트는 planId 필수)
+
+**구현 파일**: `src/api/tasks.ts` (lines 4-38)
+
 ```typescript
-import { apiClient } from './client';
-import { Task, CreateTaskRequest, UpdateTaskRequest } from '@/types';
-import { ApiResponse } from '@/types/api';
+// src/api/tasks.ts:10-17
+create: (planId: string, date: string, data: Omit<CreateTaskRequest, 'date'>) =>
+  apiClient.post(`/plans/${planId}/tasks?date=${date}`, data),
 
-export const taskApi = {
-  // 모든 Task 작업은 planId가 필요 (백엔드 API 스펙)
-  create: (planId: string, date: string, data: Omit<CreateTaskRequest, 'date'>) =>
-    apiClient.post<ApiResponse<Task>>(`/plans/${planId}/tasks?date=${date}`, data),
-
-  update: (planId: string, taskId: string, data: UpdateTaskRequest) =>
-    apiClient.put<ApiResponse<Task>>(`/plans/${planId}/tasks/${taskId}`, data),
-
-  updateStatus: (planId: string, taskId: string, status: string, reason?: string) =>
-    apiClient.put<ApiResponse<Task>>(`/plans/${planId}/tasks/${taskId}`, { status, reason }),
-
-  move: (planId: string, taskId: string, targetDate: string, reason?: string) =>
-    apiClient.post<ApiResponse<Task>>(`/plans/${planId}/tasks/${taskId}/move`, { targetDate, reason }),
-
-  delete: (planId: string, taskId: string, reason?: string) =>
-    apiClient.delete(`/plans/${planId}/tasks/${taskId}`, { params: { reason } }),
-};
+update: (planId: string, taskId: string, data: UpdateTaskRequest) =>
+  apiClient.put(`/plans/${planId}/tasks/${taskId}`, data),
+// ...
 ```
 
 ---
@@ -733,192 +597,52 @@ export const taskApi = {
 ## 주요 컴포넌트 구현
 
 ### TaskItem.tsx
+
+개별 Task 항목 컴포넌트
+
+**구현 파일**: `src/components/task/TaskItem.tsx` (lines 39-116)
+
+주요 기능:
+- 체크박스로 완료 상태 토글
+- 드래그 핸들 (DnD 지원)
+- 시간, 우선순위, 알림 표시
+- 수정/이동/삭제 드롭다운 메뉴
+
 ```tsx
-import { useState } from 'react';
-import { Task } from '@/types';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Clock, Bell, GripVertical } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-interface TaskItemProps {
-  task: Task;
-  onStatusChange: (status: string) => void;
-  onEdit: () => void;
-  onMove: () => void;
-  onDelete: () => void;
-  isDragging?: boolean;
-}
-
-export function TaskItem({
-  task,
-  onStatusChange,
-  onEdit,
-  onMove,
-  onDelete,
-  isDragging
-}: TaskItemProps) {
-  const isCompleted = task.status === 'COMPLETED';
-
-  return (
-    <div className={cn(
-      "flex items-center gap-3 p-3 bg-white rounded-lg border",
-      isCompleted && "opacity-60",
-      isDragging && "shadow-lg"
-    )}>
-      {/* 드래그 핸들 */}
-      <GripVertical className="w-4 h-4 text-gray-400 cursor-grab" />
-
-      {/* 체크박스 */}
-      <Checkbox
-        checked={isCompleted}
-        onCheckedChange={(checked) =>
-          onStatusChange(checked ? 'COMPLETED' : 'PENDING')
-        }
-      />
-
-      {/* 시간 */}
-      {task.scheduledTime && (
-        <span className="text-sm text-gray-500 w-12">
-          {task.scheduledTime}
-        </span>
-      )}
-
-      {/* 제목 */}
-      <span className={cn(
-        "flex-1",
-        isCompleted && "line-through text-gray-400"
-      )}>
-        {task.title}
-      </span>
-
-      {/* 알림 아이콘 */}
-      {task.reminder?.enabled && (
-        <Bell className="w-4 h-4 text-gray-400" />
-      )}
-
-      {/* 우선순위 뱃지 */}
-      <PriorityBadge priority={task.priority} />
-
-      {/* 더보기 메뉴 */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm">
-            <MoreHorizontal className="w-4 h-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuItem onClick={onEdit}>수정</DropdownMenuItem>
-          <DropdownMenuItem onClick={onMove}>다른 날로 이동</DropdownMenuItem>
-          <DropdownMenuItem onClick={onDelete} className="text-red-600">
-            삭제
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
-}
-
-function PriorityBadge({ priority }: { priority: string }) {
-  const colors = {
-    LOW: 'bg-gray-100 text-gray-600',
-    MEDIUM: 'bg-blue-100 text-blue-600',
-    HIGH: 'bg-orange-100 text-orange-600',
-    URGENT: 'bg-red-100 text-red-600',
-  };
-
-  return (
-    <span className={cn(
-      "text-xs px-2 py-0.5 rounded",
-      colors[priority as keyof typeof colors]
-    )}>
-      {priority}
-    </span>
-  );
-}
+// src/components/task/TaskItem.tsx:54-69
+<div className={cn(
+  'flex items-center gap-3 p-3 bg-white rounded-lg border',
+  isCompleted && 'opacity-60',
+  isDragging && 'shadow-lg ring-2 ring-primary/20'
+)}>
+  <div {...dragHandleProps}>
+    <GripVertical className="h-4 w-4 text-gray-400" />
+  </div>
+  <Checkbox checked={isCompleted} onCheckedChange={handleCheckChange} />
+  {/* ... 전체 구현은 파일 참조 */}
+</div>
 ```
 
 ### ChangeTimeline.tsx
+
+변경 이력 타임라인 컴포넌트
+
+**구현 파일**: `src/components/review/ChangeTimeline.tsx` (lines 59-142)
+
+주요 기능:
+- 날짜별로 변경 이력 그룹핑 (lines 60-68)
+- 변경 타입별 아이콘 표시 (lines 18-57)
+- 변경 사유 표시
+
 ```tsx
-import { ChangeLog } from '@/types';
-import { format, parseISO } from 'date-fns';
-import { ko } from 'date-fns/locale';
-
-interface ChangeTimelineProps {
-  changes: ChangeLog[];
-}
-
-export function ChangeTimeline({ changes }: ChangeTimelineProps) {
-  // 날짜별 그룹핑
-  const grouped = changes.reduce((acc, change) => {
-    const date = change.targetDate;
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(change);
-    return acc;
-  }, {} as Record<string, ChangeLog[]>);
-
-  return (
-    <div className="space-y-6">
-      {Object.entries(grouped).map(([date, logs]) => (
-        <div key={date}>
-          <h3 className="font-medium text-gray-900 mb-3">
-            {format(parseISO(date), 'M월 d일 (E)', { locale: ko })}
-          </h3>
-          <div className="space-y-2 pl-4 border-l-2 border-gray-200">
-            {logs.map((log) => (
-              <ChangeLogItem key={log.id} log={log} />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ChangeLogItem({ log }: { log: ChangeLog }) {
-  const time = format(parseISO(log.changedAt), 'HH:mm');
-
-  return (
-    <div className="relative pl-4">
-      <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-blue-500" />
-      <div className="text-sm">
-        <span className="text-gray-500">{time}</span>
-        <span className="mx-2">"{log.taskTitle}"</span>
-        <span className="text-gray-700">{getChangeDescription(log)}</span>
-        {log.reason && (
-          <p className="text-gray-500 text-xs mt-1">사유: {log.reason}</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function getChangeDescription(log: ChangeLog): string {
+// src/components/review/ChangeTimeline.tsx:100-123
+const getChangeDescription = (): string => {
   switch (log.changeType) {
     case 'STATUS_CHANGED':
-      const statusChange = log.changes.find(c => c.field === 'status');
-      if (statusChange?.newValue === 'COMPLETED') return '완료 처리';
-      if (statusChange?.newValue === 'CANCELLED') return '취소됨';
-      return '상태 변경';
+      return '완료 처리' // or '취소됨'
     case 'TIME_CHANGED':
-      const timeChange = log.changes.find(c => c.field === 'scheduledTime');
-      return `시간 변경 (${timeChange?.previousValue} → ${timeChange?.newValue})`;
-    case 'MOVED_TO_ANOTHER_DAY':
-      return '다른 날로 이동됨';
-    case 'TASK_CREATED':
-      return '추가됨';
-    case 'TASK_DELETED':
-      return '삭제됨';
-    case 'PRIORITY_CHANGED':
-      return '우선순위 변경';
-    default:
-      return '수정됨';
+      return `시간 변경 (이전 → 새로운)`
+    // ...
   }
 }
 ```
@@ -928,400 +652,86 @@ function getChangeDescription(log: ChangeLog): string {
 ## 페이지 구현
 
 ### Today.tsx
+
+오늘의 할 일 페이지
+
+**구현 파일**: `src/pages/Today.tsx` (lines 18-245)
+
+주요 기능:
+- 날짜 네비게이션 (이전/다음 날) - lines 175-188
+- Task 목록 표시 - lines 191-197
+- Task 추가/수정/이동/삭제 - lines 52-151
+- 일일 메모 작성 - lines 206-217
+
 ```tsx
-import { useEffect, useState } from 'react';
-import { format, addDays, subDays } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { TaskList } from '@/components/task/TaskList';
-import { TaskForm } from '@/components/task/TaskForm';
-import { usePlanStore } from '@/stores/planStore';
-import { planApi } from '@/api/plans';
-import { taskApi } from '@/api/tasks';
-import { cn } from '@/lib/utils';
-import { CreateTaskRequest } from '@/types';
-
-export default function Today() {
-  const [date, setDate] = useState(new Date());
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const { currentPlan, setPlan, setLoading } = usePlanStore();
-
-  const dateStr = format(date, 'yyyy-MM-dd');
-  const dailyPlan = currentPlan?.dailyPlans[dateStr];
-  const tasks = dailyPlan?.tasks || [];
-
-  useEffect(() => {
-    loadPlan();
-  }, []);
-
-  const loadPlan = async () => {
-    setLoading(true);
-    try {
-      const response = await planApi.getCurrent();
-      setPlan(response.data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStatusChange = async (taskId: string, status: string) => {
-    if (!currentPlan) return;
-    try {
-      await taskApi.updateStatus(currentPlan.id, taskId, status);
-      loadPlan();
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const handleAddTask = async (data: CreateTaskRequest) => {
-    if (!currentPlan) return;
-    try {
-      // planId와 date를 별도로 전달
-      await taskApi.create(currentPlan.id, dateStr, data);
-      setIsFormOpen(false);
-      loadPlan();
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  return (
-    <div className="max-w-2xl mx-auto p-6">
-      {/* 날짜 헤더 */}
-      <div className="flex items-center justify-between mb-6">
-        <Button variant="ghost" onClick={() => setDate(d => subDays(d, 1))}>
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">
-            {format(date, 'M월 d일 (E)', { locale: ko })}
-          </h1>
-          {currentPlan && (
-            <span className={cn(
-              "text-sm px-2 py-1 rounded",
-              currentPlan.status === 'CONFIRMED'
-                ? 'bg-green-100 text-green-700'
-                : 'bg-gray-100'
-            )}>
-              {currentPlan.status === 'CONFIRMED' ? '확정됨' : '작성 중'}
-            </span>
-          )}
-        </div>
-        <Button variant="ghost" onClick={() => setDate(d => addDays(d, 1))}>
-          <ChevronRight className="w-5 h-5" />
-        </Button>
-      </div>
-
-      {/* Task 목록 */}
-      <TaskList
-        tasks={tasks}
-        onStatusChange={handleStatusChange}
-        onEdit={(task) => {/* 편집 모달 */}}
-        onMove={(task) => {/* 이동 모달 */}}
-        onDelete={(taskId) => {
-          if (!currentPlan) return;
-          taskApi.delete(currentPlan.id, taskId).then(loadPlan);
-        }}
-      />
-
-      {/* 추가 버튼 */}
-      <Button
-        onClick={() => setIsFormOpen(true)}
-        className="w-full mt-4"
-        variant="outline"
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        할 일 추가
-      </Button>
-
-      {/* 추가 폼 모달 */}
-      <TaskForm
-        open={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleAddTask}
-      />
-    </div>
-  );
+// src/pages/Today.tsx:52-61
+const handleStatusChange = async (taskId: string, status: TaskStatus) => {
+  if (!currentPlan) return
+  try {
+    await taskApi.updateStatus(currentPlan.id, taskId, status)
+    loadPlan()
+  } catch (error) {
+    toast({ variant: 'destructive', title: '상태 변경 실패' })
+  }
 }
 ```
 
 ### Review.tsx
-```tsx
-import { useEffect, useState } from 'react';
-import { format } from 'date-fns';
-import { reviewApi } from '@/api/reviews';
-import { WeeklyReview } from '@/types';
-import { StatsSummary } from '@/components/review/StatsSummary';
-import { CompletionChart } from '@/components/review/CompletionChart';
-import { ChangeTimeline } from '@/components/review/ChangeTimeline';
-import { ChangeTypeChart } from '@/components/review/ChangeTypeChart';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { EmptyState } from '@/components/common/EmptyState';
 
-export default function Review() {
-  const [review, setReview] = useState<WeeklyReview | null>(null);
-  const [loading, setLoading] = useState(true);
+주간 회고 페이지
 
-  useEffect(() => {
-    loadReview();
-  }, []);
+**구현 파일**: `src/pages/Review.tsx` (lines 15-99)
 
-  const loadReview = async () => {
-    try {
-      const response = await reviewApi.getCurrent();
-      setReview(response.data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+주요 기능:
+- 주간 회고 데이터 로드 - lines 25-39
+- 통계 요약 표시 - line 65
+- 일별 완료율 차트 - lines 69-76
+- 변경 유형별 차트 - lines 78-85
+- 변경 이력 타임라인 - lines 89-96
 
-  if (loading) return <LoadingSpinner />;
-  if (!review) return <EmptyState message="회고 데이터가 없습니다" />;
+### Commute.tsx
 
-  return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-      {/* 헤더 */}
-      <div>
-        <h1 className="text-2xl font-bold">📊 주간 회고</h1>
-        <p className="text-gray-500">
-          {format(new Date(review.weekStartDate), 'yyyy년 M월 d일')} ~
-          {format(new Date(review.weekEndDate), 'M월 d일')}
-        </p>
-      </div>
+출퇴근 시간 계산 페이지
 
-      {/* 통계 요약 */}
-      <StatsSummary statistics={review.statistics} />
+**구현 파일**: `src/pages/Commute.tsx` (lines 9-144)
 
-      {/* 차트 영역 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg border">
-          <h2 className="font-medium mb-4">일별 완료율</h2>
-          <CompletionChart dailyBreakdown={review.dailyBreakdown} />
-        </div>
-        <div className="bg-white p-6 rounded-lg border">
-          <h2 className="font-medium mb-4">변경 유형 분석</h2>
-          <ChangeTypeChart changesByType={review.statistics.changesByType} />
-        </div>
-      </div>
+주요 기능:
+- 루틴 목록 관리 - lines 82-109
+- 시간 계산기 - lines 113-124
+- 루틴 추가/수정 폼 - lines 16-52, 128-141
 
-      {/* 변경 이력 타임라인 */}
-      <div className="bg-white p-6 rounded-lg border">
-        <h2 className="font-medium mb-4">변경 이력</h2>
-        <ChangeTimeline changes={review.changeHistory} />
-      </div>
-    </div>
-  );
-}
-```
-
-### Commute.tsx (출퇴근 시간 계산)
-```tsx
-import { useState } from 'react'
-import { useCommuteStore } from '@/stores/commuteStore'
-import { CommuteRoutine } from '@/types'
-import { Button } from '@/components/ui/button'
-import { RoutineForm, RoutineCard, TimeCalculator } from '@/components/commute'
-import { Plus, Train } from 'lucide-react'
-
-export default function Commute() {
-  const { routines, selectedRoutine, addRoutine, deleteRoutine, selectRoutine } =
-    useCommuteStore()
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingRoutine, setEditingRoutine] = useState<CommuteRoutine | null>(null)
-
-  return (
-    <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Train className="h-6 w-6 text-blue-600" />
-          <div>
-            <h1 className="text-xl font-bold">출퇴근 시간 계산기</h1>
-            <p className="text-sm text-gray-500">
-              루틴을 저장하고 도착 시간에 맞춰 출발 시간을 계산하세요
-            </p>
-          </div>
-        </div>
-        <Button onClick={() => setIsFormOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          새 루틴
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 루틴 목록 */}
-        <div className="space-y-4">
-          <h2 className="font-semibold text-gray-700">저장된 루틴</h2>
-          {routines.map((routine) => (
-            <RoutineCard
-              key={routine.id}
-              routine={routine}
-              isSelected={selectedRoutine?.id === routine.id}
-              onSelect={() => selectRoutine(routine)}
-              onEdit={() => setEditingRoutine(routine)}
-              onDelete={() => deleteRoutine(routine.id)}
-            />
-          ))}
-        </div>
-
-        {/* 시간 계산기 */}
-        <div className="space-y-4">
-          <h2 className="font-semibold text-gray-700">시간 계산</h2>
-          {selectedRoutine && <TimeCalculator routine={selectedRoutine} />}
-        </div>
-      </div>
-
-      {/* 추가/수정 폼 */}
-      <RoutineForm
-        open={isFormOpen || !!editingRoutine}
-        onClose={() => {
-          setIsFormOpen(false)
-          setEditingRoutine(null)
-        }}
-        routine={editingRoutine || undefined}
-        isEdit={!!editingRoutine}
-      />
-    </div>
-  )
-}
-```
-
-**출퇴근 시간 계산 기능:**
-- 출퇴근 루틴을 단계별로 등록 (준비, 도보, 버스, 지하철 등)
-- 도착 시간을 입력하면 자동으로 출발 시간 역산
-- 여유 시간(offset) 조정 가능
+출퇴근 시간 계산 기능:
+- 루틴을 단계별로 등록 (준비, 도보, 버스, 지하철 등)
+- 도착 시간 입력 시 출발 시간 자동 역산
+- 여유 시간(offset) 조정
 - 드래그 앤 드롭으로 단계 순서 변경
-- 로컬 스토리지에 루틴 저장 (백엔드 연동 선택적)
-- 각 단계별 시작/종료 시간 표시
+- 로컬 스토리지에 루틴 저장
 
 ---
 
 ## 드래그 앤 드롭 (주간 계획)
 
-### WeekCalendar.tsx (with @dnd-kit)
+### WeekCalendar.tsx
+
+@dnd-kit을 사용한 주간 캘린더 뷰 (Task 드래그 앤 드롭)
+
+**구현 파일**: `src/components/plan/WeekCalendar.tsx` (lines 28-116)
+
+주요 기능:
+- DndContext로 드래그 앤 드롭 컨텍스트 설정 - lines 79-84
+- 드래그 시작 시 activeTask 설정 - lines 56-61
+- 드래그 종료 시 Task 이동 API 호출 - lines 63-76
+- 7일 캘린더 그리드 렌더링 - lines 85-97
+- DragOverlay로 드래그 중인 Task 표시 - lines 100-113
+
 ```tsx
-import { useState } from 'react';
-import {
-  DndContext,
-  DragOverlay,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragStartEvent,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import { DayColumn } from './DayColumn';
-import { TaskItem } from '../task/TaskItem';
-import { usePlanStore } from '@/stores/planStore';
-import { taskApi } from '@/api/tasks';
-import { Task } from '@/types';
-
-export function WeekCalendar() {
-  const { currentPlan } = usePlanStore();
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor)
-  );
-
-  const findTask = (taskId: string): Task | null => {
-    if (!currentPlan) return null;
-    for (const dailyPlan of Object.values(currentPlan.dailyPlans)) {
-      const task = dailyPlan.tasks.find(t => t.id === taskId);
-      if (task) return task;
-    }
-    return null;
-  };
-
-  const findTaskDate = (taskId: string): string | null => {
-    if (!currentPlan) return null;
-    for (const [date, dailyPlan] of Object.entries(currentPlan.dailyPlans)) {
-      if (dailyPlan.tasks.some(t => t.id === taskId)) return date;
-    }
-    return null;
-  };
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const task = findTask(active.id as string);
-    setActiveTask(task);
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveTask(null);
-
-    if (!over || !currentPlan) return;
-
-    const taskId = active.id as string;
-    const targetDate = over.id as string;
-    const sourceDate = findTaskDate(taskId);
-
-    if (sourceDate === targetDate) return;
-
-    try {
-      // planId 필수 전달
-      await taskApi.move(currentPlan.id, taskId, targetDate);
-      // Plan 리로드
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const getWeekDates = (startDate?: string): string[] => {
-    if (!startDate) return [];
-    const dates: string[] = [];
-    const start = new Date(startDate);
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(start);
-      date.setDate(start.getDate() + i);
-      dates.push(date.toISOString().split('T')[0]);
-    }
-    return dates;
-  };
-
-  const weekDates = getWeekDates(currentPlan?.weekStartDate);
-
-  return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="grid grid-cols-7 gap-2">
-        {weekDates.map((date) => (
-          <DayColumn
-            key={date}
-            date={date}
-            dailyPlan={currentPlan?.dailyPlans[date]}
-          />
-        ))}
-      </div>
-
-      <DragOverlay>
-        {activeTask && (
-          <TaskItem
-            task={activeTask}
-            isDragging
-            onStatusChange={() => {}}
-            onEdit={() => {}}
-            onMove={() => {}}
-            onDelete={() => {}}
-          />
-        )}
-      </DragOverlay>
-    </DndContext>
-  );
+// src/components/plan/WeekCalendar.tsx:48-54
+const findTask = (taskId: string): { task: Task; date: string } | null => {
+  for (const [date, dailyPlan] of Object.entries(plan.dailyPlans)) {
+    const task = dailyPlan.tasks.find((t) => t.id === taskId)
+    if (task) return { task, date }
+  }
+  return null
 }
 ```
 
@@ -1330,59 +740,27 @@ export function WeekCalendar() {
 ## 라우팅 설정
 
 ### App.tsx
+
+React Router 기반 라우팅 설정
+
+**구현 파일**: `src/App.tsx` (lines 35-103)
+
+주요 기능:
+- PrivateRoute: 인증된 사용자만 접근 가능 (lines 15-23)
+- PublicRoute: 미인증 사용자만 접근 가능 (lines 25-33)
+- 중첩 라우팅: Layout 안에 보호된 페이지들 (lines 80-96)
+
 ```tsx
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthStore } from '@/stores/authStore';
-import { Layout } from '@/components/layout/Layout';
-import Dashboard from '@/pages/Dashboard';
-import Today from '@/pages/Today';
-import Planning from '@/pages/Planning';
-import Review from '@/pages/Review';
-import Notifications from '@/pages/Notifications';
-import Commute from '@/pages/Commute';
-import Settings from '@/pages/Settings';
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-
+// src/App.tsx:15-23
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
 }
 
+// src/App.tsx:25-33
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  return !isAuthenticated ? <>{children}</> : <Navigate to="/" />;
-}
-
-export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public */}
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-
-        {/* Private */}
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <Layout />
-            </PrivateRoute>
-          }
-        >
-          <Route index element={<Dashboard />} />
-          <Route path="today" element={<Today />} />
-          <Route path="planning" element={<Planning />} />
-          <Route path="review" element={<Review />} />
-          <Route path="review/:weekStartDate" element={<Review />} />
-          <Route path="notifications" element={<Notifications />} />
-          <Route path="commute" element={<Commute />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  );
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  return isAuthenticated ? <Navigate to="/" replace /> : <>{children}</>
 }
 ```
 
@@ -1546,25 +924,17 @@ npx shadcn-ui@latest add progress
 npm install recharts
 ```
 
+**구현 파일**:
+- `src/components/review/CompletionChart.tsx` (lines 18-51) - 일별 완료율 막대 차트
+- `src/components/review/ChangeTypeChart.tsx` - 변경 유형별 파이 차트
+
 ```tsx
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-
-export function CompletionChart({ dailyBreakdown }) {
-  const data = Object.entries(dailyBreakdown).map(([date, stats]) => ({
-    date: format(parseISO(date), 'E', { locale: ko }),
-    completionRate: stats.completionRate,
-  }));
-
-  return (
-    <ResponsiveContainer width="100%" height={200}>
-      <BarChart data={data}>
-        <XAxis dataKey="date" />
-        <YAxis domain={[0, 100]} />
-        <Tooltip />
-        <Bar dataKey="completionRate" fill="#3b82f6" />
-      </BarChart>
-    </ResponsiveContainer>
-  );
+// src/components/review/CompletionChart.tsx:28-33
+const getBarColor = (rate: number) => {
+  if (rate >= 80) return '#10b981'  // green
+  if (rate >= 60) return '#3b82f6'  // blue
+  if (rate >= 40) return '#f59e0b'  // amber
+  return '#ef4444'  // red
 }
 ```
 

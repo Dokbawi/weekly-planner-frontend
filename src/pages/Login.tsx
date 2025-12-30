@@ -57,14 +57,35 @@ export default function Login() {
         }
       }
 
+      console.log('Setting auth with token:', token, 'user:', user) // 디버깅
       setAuth(token, user)
-      toast({
-        title: '로그인 성공',
-        description: '환영합니다!',
-      })
 
-      // setTimeout를 추가하여 상태 업데이트 후 네비게이션
+      // 저장 확인
       setTimeout(() => {
+        const state = useAuthStore.getState()
+        console.log('Auth state after setAuth:', {
+          token: state.token,
+          user: state.user,
+          isAuthenticated: state.isAuthenticated
+        })
+
+        // localStorage 확인
+        const stored = localStorage.getItem('auth-storage')
+        console.log('LocalStorage auth-storage:', stored)
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored)
+            console.log('Parsed localStorage:', parsed)
+          } catch (e) {
+            console.error('Failed to parse localStorage:', e)
+          }
+        }
+
+        toast({
+          title: '로그인 성공',
+          description: '환영합니다!',
+        })
+
         navigate('/')
       }, 100)
     } catch (error: any) {
