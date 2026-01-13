@@ -23,23 +23,26 @@ const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/refresh']
 
 apiClient.interceptors.response.use(
   (response) => response.data,
-  (error) => {
-    if (error.response?.status === 401) {
-      const requestUrl = error.config?.url || ''
-      const { token, logout } = useAuthStore.getState()
+  async (error) => {
+    const originalRequest = error.config
 
-      // 인증 엔드포인트가 아니고, 토큰이 있는 상태에서 401 발생 시에만 로그아웃
-      // (토큰이 있었다는 것은 인증된 상태였다는 의미 → 토큰 만료/무효화)
-      const isAuthEndpoint = AUTH_ENDPOINTS.some(endpoint => requestUrl.includes(endpoint))
+    // 401 에러이고 재시도하지 않은 요청인 경우
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true
 
-      if (!isAuthEndpoint && token) {
-        logout()
-        // 로그인 페이지로 리다이렉트
-        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
-          window.location.href = '/login'
-        }
+      // 토큰 재발급 시도 (refresh token이 있다면)
+      // 현재는 refresh token이 없으므로 바로 로그아웃
+      const authStore = useAuthStore.getState()
+
+      // auth 관련 엔드포인트는 로그아웃 처리하지 않음
+      if (!originalRequest.url?.includes('/auth/')) {
+        console.warn('Token expired or invalid, logging out...')
+        authStore.logout()
+        window.location.href = '/login'
+        return Promise.reject(error)
       }
     }
+
     return Promise.reject(error.response?.data?.error || error)
   }
 )

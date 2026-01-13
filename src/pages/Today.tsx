@@ -50,7 +50,7 @@ export default function Today() {
   }
 
   const handleStatusChange = async (taskId: string, status: TaskStatus) => {
-    if (!currentPlan) return
+    if (!currentPlan || !currentPlan.id) return
     try {
       await taskApi.updateStatus(currentPlan.id, taskId, status)
       loadPlan()
@@ -69,7 +69,10 @@ export default function Today() {
     reminderEnabled: boolean
     reminderMinutes?: number
   }) => {
-    if (!currentPlan) return
+    if (!currentPlan || !currentPlan.id) {
+      toast({ variant: 'destructive', title: '계획을 불러오는 중입니다. 잠시 후 다시 시도하세요.' })
+      return
+    }
     try {
       const request = {
         title: data.title,
@@ -101,7 +104,10 @@ export default function Today() {
     reminderMinutes?: number
     reason?: string
   }) => {
-    if (!editingTask || !currentPlan) return
+    if (!editingTask || !currentPlan || !currentPlan.id) {
+      toast({ variant: 'destructive', title: '계획을 불러오는 중입니다. 잠시 후 다시 시도하세요.' })
+      return
+    }
     try {
       const request: UpdateTaskRequest = {
         title: data.title,
@@ -125,7 +131,7 @@ export default function Today() {
   }
 
   const handleMoveTask = async (targetDate: string, reason?: string) => {
-    if (!movingTask || !currentPlan) return
+    if (!movingTask || !currentPlan || !currentPlan.id) return
     try {
       await taskApi.move(currentPlan.id, movingTask.id, targetDate, reason)
       setMovingTask(null)
@@ -139,7 +145,7 @@ export default function Today() {
 
   const handleDeleteTask = async (taskId: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return
-    if (!currentPlan) return
+    if (!currentPlan || !currentPlan.id) return
     try {
       await taskApi.delete(currentPlan.id, taskId)
       loadPlan()

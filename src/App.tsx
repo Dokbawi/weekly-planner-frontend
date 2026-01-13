@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { Layout } from '@/components/layout/Layout'
@@ -14,7 +15,21 @@ import Register from '@/pages/Register'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
+  const isTokenValid = useAuthStore((s) => s.isTokenValid)
+  const logout = useAuthStore((s) => s.logout)
+
+  const tokenValid = isTokenValid()
+  const isValid = isAuthenticated && tokenValid
+
+  useEffect(() => {
+    // 토큰이 만료되었으면 로그아웃 처리 (useEffect 내에서 상태 변경)
+    if (isAuthenticated && !tokenValid) {
+      console.log('Token expired, logging out...')
+      logout()
+    }
+  }, [isAuthenticated, tokenValid, logout])
+
+  return isValid ? <>{children}</> : <Navigate to="/login" replace />
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {

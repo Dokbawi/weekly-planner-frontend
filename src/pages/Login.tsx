@@ -59,7 +59,10 @@ export default function Login() {
         }
       }
 
-      setAuth(token, user!)
+      console.log('Setting auth with token:', token, 'user:', user) // 디버깅
+      // expiresIn이 있으면 사용, 없으면 기본값(3600초 = 1시간)
+      const expiresIn = response.data.expiresIn || 3600
+      setAuth(token, user, expiresIn)
 
       // 저장 확인
       setTimeout(() => {

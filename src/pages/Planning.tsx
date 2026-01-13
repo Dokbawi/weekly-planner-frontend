@@ -159,10 +159,18 @@ export default function Planning() {
           </Button>
           <div>
             <h1 className="text-xl font-bold">
-              {format(parseISO(currentPlan.weekStartDate), 'yyyy년 M월 d일', {
-                locale: ko,
-              })}{' '}
-              ~ {format(parseISO(currentPlan.weekEndDate), 'M월 d일', { locale: ko })}
+              {currentPlan.weekStartDate &&
+                format(parseISO(currentPlan.weekStartDate), 'yyyy년 M월 d일', {
+                  locale: ko,
+                })}{' '}
+              ~{' '}
+              {currentPlan.weekEndDate ?
+                format(parseISO(currentPlan.weekEndDate), 'M월 d일', { locale: ko }) :
+                (() => {
+                  const endDate = new Date(currentPlan.weekStartDate)
+                  endDate.setDate(endDate.getDate() + 6)
+                  return format(endDate, 'M월 d일', { locale: ko })
+                })()}
             </h1>
             <PlanStatusBadge status={currentPlan.status} />
           </div>

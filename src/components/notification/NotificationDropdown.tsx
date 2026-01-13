@@ -74,7 +74,7 @@ export function NotificationDropdown() {
           )}
         </div>
         <div className="max-h-[400px] overflow-y-auto">
-          {notifications.length > 0 ? (
+          {notifications && notifications.length > 0 ? (
             notifications.map((notification) => (
               <NotificationItem key={notification.id} notification={notification} />
             ))
