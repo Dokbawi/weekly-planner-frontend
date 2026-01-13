@@ -33,7 +33,12 @@ export default function Planning() {
     setLoading(true)
     try {
       const response = await planApi.getCurrent()
-      setPlan(response.data)
+      // plan이 null일 수 있음 (계획이 없는 경우)
+      if (response.data) {
+        setPlan(response.data)
+      } else {
+        setPlan(null)
+      }
     } catch (error) {
       console.error(error)
       toast({ variant: 'destructive', title: '데이터 로드 실패' })
@@ -78,19 +83,27 @@ export default function Planning() {
     reminderEnabled: boolean
     reminderMinutes?: number
   }) => {
-    if (!currentPlan || !selectedDate) return
+    if (!selectedDate) return
     try {
+      // 계획이 없으면 생성
+      let planId = currentPlan?.id
+      if (!planId) {
+        const planResponse = await planApi.getOrCreateCurrent()
+        planId = planResponse.data.id
+        setPlan(planResponse.data)
+      }
+
       const request = {
         title: data.title,
         description: data.description,
         scheduledTime: data.scheduledTime || undefined,
-        estimatedMinutes: data.estimatedMinutes,
+        // estimatedMinutes는 백엔드에서 지원하지 않음
         priority: data.priority as CreateTaskRequest['priority'],
         reminder: data.reminderEnabled
           ? { enabled: true, minutesBefore: data.reminderMinutes || 10 }
           : undefined,
       }
-      await taskApi.create(currentPlan.id, selectedDate, request)
+      await taskApi.create(planId, selectedDate, request)
       setIsFormOpen(false)
       setSelectedDate(null)
       loadPlan()
@@ -136,10 +149,34 @@ export default function Planning() {
     }
   }
 
-  if (isLoading || !currentPlan) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner />
+      </div>
+    )
+  }
+
+  // 계획이 없는 경우 빈 상태 표시
+  if (!currentPlan) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">주간 계획</h1>
+        <div className="flex flex-col items-center justify-center h-64 text-center">
+          <p className="text-gray-500 mb-4">아직 이번 주 계획이 없습니다.</p>
+          <Button onClick={async () => {
+            try {
+              const response = await planApi.getOrCreateCurrent()
+              setPlan(response.data)
+              toast({ title: '주간 계획이 생성되었습니다' })
+            } catch (error) {
+              console.error(error)
+              toast({ variant: 'destructive', title: '계획 생성 실패' })
+            }
+          }}>
+            주간 계획 시작하기
+          </Button>
+        </div>
       </div>
     )
   }
@@ -231,7 +268,7 @@ export default function Planning() {
               title: data.title,
               description: data.description,
               scheduledTime: data.scheduledTime,
-              estimatedMinutes: data.estimatedMinutes,
+              // estimatedMinutes는 백엔드에서 지원하지 않음
               priority: data.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT',
               reason: data.reason,
             })

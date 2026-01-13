@@ -10,11 +10,11 @@ export const notificationApi = {
   getUnreadCount: (): Promise<ApiResponse<{ count: number }>> =>
     apiClient.get('/notifications/unread/count'),
 
-  // 알림 읽음 처리 - POST로 변경
+  // 알림 읽음 처리 (api-contract.md 기준 PUT)
   markAsRead: (notificationId: string): Promise<void> =>
-    apiClient.post(`/notifications/${notificationId}/read`),
+    apiClient.put(`/notifications/${notificationId}/read`),
 
-  // 전체 알림 읽음 처리 - POST로 변경
+  // 전체 알림 읽음 처리 (api-contract.md 기준 PUT)
   markAllAsRead: (): Promise<void> =>
-    apiClient.post('/notifications/read-all'),
+    apiClient.put('/notifications/read-all'),
 }

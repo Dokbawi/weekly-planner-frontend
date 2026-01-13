@@ -40,9 +40,9 @@ export interface UpdateTaskRequest {
   title?: string
   description?: string
   scheduledTime?: string
-  estimatedMinutes?: number
-  reminder?: ReminderSettings
+  status?: TaskStatus
   priority?: Priority
   tags?: string[]
+  reminder?: ReminderSettings
   reason?: string
 }

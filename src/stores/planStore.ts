@@ -6,7 +6,7 @@ interface PlanState {
   isLoading: boolean
   error: string | null
 
-  setPlan: (plan: WeeklyPlan) => void
+  setPlan: (plan: WeeklyPlan | null) => void
   updateTask: (date: string, task: Task) => void
   addTask: (date: string, task: Task) => void
   removeTask: (date: string, taskId: string) => void

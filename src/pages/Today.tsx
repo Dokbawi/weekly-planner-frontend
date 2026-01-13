@@ -40,7 +40,12 @@ export default function Today() {
     setLoading(true)
     try {
       const response = await planApi.getCurrent()
-      setPlan(response.data)
+      // plan이 null일 수 있음 (계획이 없는 경우)
+      if (response.data) {
+        setPlan(response.data)
+      } else {
+        setPlan(null)
+      }
     } catch (error) {
       console.error(error)
       toast({ variant: 'destructive', title: '데이터 로드 실패' })
@@ -69,22 +74,26 @@ export default function Today() {
     reminderEnabled: boolean
     reminderMinutes?: number
   }) => {
-    if (!currentPlan || !currentPlan.id) {
-      toast({ variant: 'destructive', title: '계획을 불러오는 중입니다. 잠시 후 다시 시도하세요.' })
-      return
-    }
     try {
+      // 계획이 없으면 생성
+      let planId = currentPlan?.id
+      if (!planId) {
+        const planResponse = await planApi.getOrCreateCurrent()
+        planId = planResponse.data.id
+        setPlan(planResponse.data)
+      }
+
       const request = {
         title: data.title,
         description: data.description,
         scheduledTime: data.scheduledTime || undefined,
-        estimatedMinutes: data.estimatedMinutes,
+        // estimatedMinutes는 백엔드에서 지원하지 않음
         priority: data.priority as CreateTaskRequest['priority'],
         reminder: data.reminderEnabled
           ? { enabled: true, minutesBefore: data.reminderMinutes || 10 }
           : undefined,
       }
-      await taskApi.create(currentPlan.id, dateStr, request)
+      await taskApi.create(planId, dateStr, request)
       setIsFormOpen(false)
       loadPlan()
       toast({ title: '할 일이 추가되었습니다' })
@@ -113,7 +122,7 @@ export default function Today() {
         title: data.title,
         description: data.description,
         scheduledTime: data.scheduledTime || undefined,
-        estimatedMinutes: data.estimatedMinutes,
+        // estimatedMinutes는 백엔드에서 지원하지 않음
         priority: data.priority as UpdateTaskRequest['priority'],
         reminder: data.reminderEnabled
           ? { enabled: true, minutesBefore: data.reminderMinutes || 10 }

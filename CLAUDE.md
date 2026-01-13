@@ -318,14 +318,11 @@ DELETE /plans/{planId}/tasks/{taskId}?reason=삭제사유
 
 ### 알림 API 변경
 
-알림 읽음 처리 메서드가 변경되었습니다:
+알림 읽음 처리는 PUT 메서드를 사용합니다 (api-contract.md 기준):
 
 ```typescript
-// 이전 (미구현)
 PUT /notifications/{id}/read
-
-// 현재 (구현됨)
-POST /notifications/{id}/read
+PUT /notifications/read-all
 ```
 
 ### 인증 토큰 필드명

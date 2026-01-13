@@ -27,7 +27,10 @@ export default function Dashboard() {
         planApi.getCurrent(),
         todayApi.get(),
       ])
-      setPlan(planResponse.data)
+      // plan이 null일 수 있음
+      if (planResponse.data) {
+        setPlan(planResponse.data)
+      }
       setTodayData(todayResponse.data)
     } catch (error) {
       console.error('Failed to load data:', error)
