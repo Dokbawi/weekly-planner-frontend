@@ -43,9 +43,11 @@ export default function Login() {
 
       // user 정보가 없다면 /auth/me로 조회
       let user = response.data.user
+      const tempUser = { id: '', email: data.email, name: '', createdAt: new Date().toISOString() }
+
       if (!user) {
         // 토큰을 먼저 저장해야 /auth/me 호출 가능
-        useAuthStore.getState().setAuth(token, { id: '', email: data.email, name: '' })
+        useAuthStore.getState().setAuth(token, tempUser)
 
         try {
           const meResponse = await authApi.getMe()
@@ -53,12 +55,11 @@ export default function Login() {
         } catch (error) {
           console.error('Failed to get user info:', error)
           // 사용자 정보 조회 실패해도 로그인은 성공으로 처리
-          user = { id: '', email: data.email, name: data.email.split('@')[0] }
+          user = { id: '', email: data.email, name: data.email.split('@')[0], createdAt: new Date().toISOString() }
         }
       }
 
-      console.log('Setting auth with token:', token, 'user:', user) // 디버깅
-      setAuth(token, user)
+      setAuth(token, user!)
 
       // 저장 확인
       setTimeout(() => {
