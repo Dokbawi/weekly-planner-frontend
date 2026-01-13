@@ -1,4 +1,3 @@
-import { apiClient } from './client'
 import { ApiResponse, TodayResponse, Task } from '@/types'
 
 export const todayApi = {
@@ -18,12 +17,11 @@ export const todayApi = {
         if (todayPlan) {
           // TodayResponse 형식으로 변환
           const tasks = todayPlan.tasks || []
+          const completed = tasks.filter((t: Task) => t.status === 'COMPLETED').length
           const statistics = {
             total: tasks.length,
-            completed: tasks.filter((t: Task) => t.status === 'COMPLETED').length,
-            pending: tasks.filter((t: Task) => t.status === 'PENDING').length,
-            inProgress: tasks.filter((t: Task) => t.status === 'IN_PROGRESS').length,
-            cancelled: tasks.filter((t: Task) => t.status === 'CANCELLED').length,
+            completed,
+            remaining: tasks.length - completed,
           }
 
           return {
@@ -31,6 +29,7 @@ export const todayApi = {
             data: {
               date: today,
               dayOfWeek: todayPlan.dayOfWeek,
+              planId: planResponse.data.id,
               tasks,
               statistics,
               memo: todayPlan.memo || '',
@@ -45,14 +44,13 @@ export const todayApi = {
         success: true,
         data: {
           date: new Date().toISOString().split('T')[0],
-          dayOfWeek: ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'][new Date().getDay()],
+          dayOfWeek: ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'][new Date().getDay()] as string,
+          planId: '',
           tasks: [],
           statistics: {
             total: 0,
             completed: 0,
-            pending: 0,
-            inProgress: 0,
-            cancelled: 0,
+            remaining: 0,
           },
           memo: '',
           planStatus: 'DRAFT'

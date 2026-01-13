@@ -37,9 +37,10 @@ export const planApi = {
         params: { page: 0, size: 10 }
       })
 
-      if (response.content && response.content.length > 0) {
+      const data = response.data || response
+      if (data.content && data.content.length > 0) {
         // 현재 주에 해당하는 계획 찾기
-        const currentPlan = response.content.find((plan: WeeklyPlan) =>
+        const currentPlan = data.content.find((plan: WeeklyPlan) =>
           plan.weekStartDate === weekStartDate
         )
 
