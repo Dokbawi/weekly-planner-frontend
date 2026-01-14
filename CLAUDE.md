@@ -6,9 +6,11 @@ React + TypeScript 기반 웹 프론트엔드
 
 **구현 완료** ✅ - 2025년 12월 22일
 **API 통합 수정** 🔧 - 2025년 12월 28일
+**데이터 정규화 추가** 🔧 - 2026년 1월 14일
 
 모든 핵심 기능이 구현되었으며, 추가로 출퇴근 시간 계산 기능이 포함되었습니다.
 백엔드 API 스펙에 맞춰 프론트엔드 API 호출을 전면 수정했습니다.
+백엔드 응답 형식(배열)을 프론트엔드 형식(객체)으로 정규화하는 로직이 추가되었습니다.
 
 ## Quick Start
 
@@ -37,13 +39,24 @@ npm run lint
 VITE_API_URL=http://localhost:8080/api/v1
 ```
 
-### 최근 변경사항 (2025-12-28)
+### 최근 변경사항 (2026-01-14)
+
+- **데이터 정규화 로직 추가**
+  - `normalizeDailyPlans()`: dailyPlans 배열 → 객체 변환 (plans.ts)
+  - `normalizeReview()`: dailyBreakdown 배열 → 객체 변환 (reviews.ts)
+  - plan 목록 조회 후 상세 조회(`getById`)로 전체 데이터 확보
+  - null/undefined 데이터 안전 처리 (Notifications, Review 컴포넌트)
+
+- **API 메서드 수정**
+  - 알림 API: 읽음 처리 PUT 메서드 사용 (api-contract.md 기준)
+  - Task API: `reminderMinutesBefore` 필드 사용 (이전: `reminderMinutes`)
+
+### 이전 변경사항 (2025-12-28)
 
 - **API 통합 수정**
   - JWT 토큰: `token` → `accessToken` 필드명 변경
   - Task API: 모든 엔드포인트에 `planId` 파라미터 필수 추가
   - Task 생성: `date`를 query parameter로 전달 (`/plans/{planId}/tasks?date=yyyy-MM-dd`)
-  - 알림 API: 읽음 처리 메서드 PUT → POST 변경
   - 백엔드 미구현 엔드포인트 자동 폴백 제거:
     - `/plans/current` → `/plans` 목록에서 현재 주 찾기
     - `/today` → `/plans` 목록에서 현재 주 찾기
@@ -343,6 +356,31 @@ PUT /notifications/read-all
   }
 }
 ```
+
+### 백엔드 응답 데이터 정규화
+
+백엔드에서 `dailyPlans`가 **배열**로 오지만 프론트엔드는 **객체(Record)**를 기대합니다.
+이를 위해 `normalizeDailyPlans()` 함수로 변환합니다:
+
+```typescript
+// 백엔드 응답 (배열)
+dailyPlans: [
+  { date: '2026-01-12', tasks: [] },
+  { date: '2026-01-13', tasks: [...] },
+]
+
+// 프론트엔드 기대 (객체)
+dailyPlans: {
+  '2026-01-12': { date: '...', tasks: [] },
+  '2026-01-13': { date: '...', tasks: [...] },
+}
+```
+
+**구현 위치:**
+- `src/api/plans.ts`: `normalizeDailyPlans()` 함수
+- `src/api/reviews.ts`: `normalizeReview()` 함수
+
+**주의:** plan을 가져올 때 목록 API(`GET /plans`)는 `dailyPlans` 상세 정보를 포함하지 않을 수 있으므로, `getCurrent()` 후 `getById()`로 상세 조회합니다.
 
 ### 백엔드 TODO
 
