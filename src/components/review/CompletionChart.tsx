@@ -16,13 +16,17 @@ interface CompletionChartProps {
 }
 
 export function CompletionChart({ dailyBreakdown }: CompletionChartProps) {
+  if (!dailyBreakdown || Object.keys(dailyBreakdown).length === 0) {
+    return <div className="text-center text-gray-500 py-8">데이터가 없습니다</div>
+  }
+
   const data = Object.entries(dailyBreakdown)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, stats]) => ({
       date: format(parseISO(date), 'E', { locale: ko }),
-      completionRate: Math.round(stats.completionRate),
-      planned: stats.planned,
-      completed: stats.completed,
+      completionRate: Math.round(stats?.completionRate || 0),
+      planned: stats?.planned || 0,
+      completed: stats?.completed || 0,
     }))
 
   const getBarColor = (rate: number) => {

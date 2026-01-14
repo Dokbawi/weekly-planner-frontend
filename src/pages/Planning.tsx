@@ -35,7 +35,13 @@ export default function Planning() {
       const response = await planApi.getCurrent()
       // plan이 null일 수 있음 (계획이 없는 경우)
       if (response.data) {
-        setPlan(response.data)
+        // 목록에서 가져온 plan은 dailyPlans가 없을 수 있으므로 상세 조회
+        const detailResponse = await planApi.getById(response.data.id)
+        if (detailResponse.data) {
+          setPlan(detailResponse.data)
+        } else {
+          setPlan(response.data)
+        }
       } else {
         setPlan(null)
       }

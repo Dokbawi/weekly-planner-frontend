@@ -7,35 +7,45 @@ interface StatsSummaryProps {
 }
 
 export function StatsSummary({ statistics }: StatsSummaryProps) {
+  // statistics가 없을 경우 기본값 사용
+  const safeStats = statistics || {
+    totalPlanned: 0,
+    completed: 0,
+    completionRate: 0,
+    cancelled: 0,
+    postponed: 0,
+    totalChanges: 0,
+  }
+
   const stats = [
     {
       label: '총 계획',
-      value: statistics.totalPlanned,
+      value: safeStats.totalPlanned || 0,
       icon: <Plus className="h-5 w-5 text-blue-500" />,
     },
     {
       label: '완료',
-      value: statistics.completed,
+      value: safeStats.completed || 0,
       icon: <CheckCircle className="h-5 w-5 text-green-500" />,
     },
     {
       label: '완료율',
-      value: `${Math.round(statistics.completionRate)}%`,
+      value: `${Math.round(safeStats.completionRate || 0)}%`,
       icon: <CheckCircle className="h-5 w-5 text-emerald-500" />,
     },
     {
       label: '취소',
-      value: statistics.cancelled,
+      value: safeStats.cancelled || 0,
       icon: <XCircle className="h-5 w-5 text-red-500" />,
     },
     {
       label: '연기',
-      value: statistics.postponed,
+      value: safeStats.postponed || 0,
       icon: <ArrowRight className="h-5 w-5 text-orange-500" />,
     },
     {
       label: '총 변경',
-      value: statistics.totalChanges,
+      value: safeStats.totalChanges || 0,
       icon: <RefreshCw className="h-5 w-5 text-purple-500" />,
     },
   ]

@@ -1,9 +1,39 @@
 import { apiClient } from './client'
-import { ApiResponse, PaginatedResponse, WeeklyPlan } from '@/types'
+import { ApiResponse, PaginatedResponse, WeeklyPlan, DailyPlan } from '@/types'
 
 interface MemoRequest {
   date: string
   memo: string
+}
+
+// 백엔드에서 dailyPlans가 배열로 올 수 있으므로 객체로 변환
+function normalizeDailyPlans(plan: any): WeeklyPlan {
+  if (!plan) return plan
+
+  // dailyPlans가 배열인 경우 객체로 변환
+  if (Array.isArray(plan.dailyPlans)) {
+    const dailyPlansObj: Record<string, DailyPlan> = {}
+    plan.dailyPlans.forEach((dp: any) => {
+      if (dp && dp.date) {
+        dailyPlansObj[dp.date] = {
+          date: dp.date,
+          dayOfWeek: dp.dayOfWeek || getDayOfWeek(dp.date),
+          tasks: dp.tasks || [],
+          memo: dp.memo,
+        }
+      }
+    })
+    return { ...plan, dailyPlans: dailyPlansObj }
+  }
+
+  return plan
+}
+
+// 날짜로부터 요일 계산
+function getDayOfWeek(dateStr: string): string {
+  const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
+  const date = new Date(dateStr)
+  return days[date.getDay()]
 }
 
 export const planApi = {
@@ -16,8 +46,11 @@ export const planApi = {
     apiClient.get('/plans', { params }),
 
   // 특정 주간 계획 조회
-  getById: (planId: string): Promise<ApiResponse<WeeklyPlan>> =>
-    apiClient.get(`/plans/${planId}`),
+  getById: async (planId: string): Promise<ApiResponse<WeeklyPlan>> => {
+    const response: any = await apiClient.get(`/plans/${planId}`)
+    const plan = response?.data || response
+    return { success: true, data: normalizeDailyPlans(plan) }
+  },
 
   // 현재 주 계획 조회 (조회만, 자동 생성 안함)
   // NOTE: /plans/current 엔드포인트가 백엔드에 구현되어야 함
@@ -70,19 +103,19 @@ export const planApi = {
       })
       if (currentPlan) {
         console.log('Found current plan by date range:', currentPlan)
-        return { success: true, data: currentPlan }
+        return { success: true, data: normalizeDailyPlans(currentPlan) }
       }
 
       // 2. 정확한 weekStartDate로 찾기
       const exactPlan = plans.find((plan: WeeklyPlan) => plan.weekStartDate === weekStartDate)
       if (exactPlan) {
         console.log('Found exact plan by weekStartDate:', exactPlan)
-        return { success: true, data: exactPlan }
+        return { success: true, data: normalizeDailyPlans(exactPlan) }
       }
 
       // 3. 가장 최근 계획 반환
       console.log('Returning first plan:', plans[0])
-      return { success: true, data: plans[0] }
+      return { success: true, data: normalizeDailyPlans(plans[0]) }
     } catch (error) {
       console.error('Failed to get current plan:', error)
       throw error
@@ -106,7 +139,8 @@ export const planApi = {
 
     try {
       const createResponse: any = await apiClient.post('/plans', { weekStartDate })
-      return { success: true, data: createResponse.data || createResponse }
+      const plan = createResponse.data || createResponse
+      return { success: true, data: normalizeDailyPlans(plan) }
     } catch (createError: any) {
       // 이미 존재하면 다시 조회
       const errorMessage = createError?.message || ''

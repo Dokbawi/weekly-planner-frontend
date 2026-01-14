@@ -22,16 +22,23 @@ export default function Notifications() {
     if (pageNum === 0) setIsLoading(true)
     try {
       const response = await notificationApi.getList({ page: pageNum, size: 20 })
-      const newNotifications = response.data.content
+      // 다양한 응답 구조 처리
+      const data = response?.data || response
+      const newNotifications = data?.content || data || []
+      const totalPages = data?.totalPages || 1
+
       if (pageNum === 0) {
-        setNotifications(newNotifications)
+        setNotifications(Array.isArray(newNotifications) ? newNotifications : [])
       } else {
-        setNotifications((prev) => [...prev, ...newNotifications])
+        setNotifications((prev) => [...prev, ...(Array.isArray(newNotifications) ? newNotifications : [])])
       }
-      setHasMore(pageNum < response.data.totalPages - 1)
+      setHasMore(pageNum < totalPages - 1)
       setPage(pageNum)
     } catch (error) {
       console.error('Failed to load notifications:', error)
+      if (pageNum === 0) {
+        setNotifications([])
+      }
     } finally {
       setIsLoading(false)
     }
@@ -43,8 +50,13 @@ export default function Notifications() {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       )
-      const unreadResponse = await notificationApi.getUnreadCount()
-      setUnreadCount(unreadResponse.data.count)
+      try {
+        const unreadResponse = await notificationApi.getUnreadCount()
+        const count = unreadResponse?.data?.count ?? unreadResponse?.count ?? 0
+        setUnreadCount(count)
+      } catch {
+        // ignore count error
+      }
     } catch (error) {
       console.error('Failed to mark as read:', error)
     }

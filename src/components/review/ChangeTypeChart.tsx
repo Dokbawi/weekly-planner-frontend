@@ -33,12 +33,20 @@ const changeTypeColors: Record<ChangeType, string> = {
 }
 
 export function ChangeTypeChart({ changesByType }: ChangeTypeChartProps) {
+  if (!changesByType || Object.keys(changesByType).length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[200px] text-gray-500">
+        변경 이력이 없습니다
+      </div>
+    )
+  }
+
   const data = Object.entries(changesByType)
     .filter(([, count]) => count > 0)
     .map(([type, count]) => ({
-      type: changeTypeLabels[type as ChangeType],
+      type: changeTypeLabels[type as ChangeType] || type,
       count,
-      fill: changeTypeColors[type as ChangeType],
+      fill: changeTypeColors[type as ChangeType] || '#6b7280',
     }))
     .sort((a, b) => b.count - a.count)
 

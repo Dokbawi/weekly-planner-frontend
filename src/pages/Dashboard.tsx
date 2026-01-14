@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, isValid } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Calendar, Plus, BarChart3, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -29,7 +29,13 @@ export default function Dashboard() {
       ])
       // plan이 null일 수 있음
       if (planResponse.data) {
-        setPlan(planResponse.data)
+        // 목록에서 가져온 plan은 dailyPlans가 없을 수 있으므로 상세 조회
+        const detailResponse = await planApi.getById(planResponse.data.id)
+        if (detailResponse.data) {
+          setPlan(detailResponse.data)
+        } else {
+          setPlan(planResponse.data)
+        }
       }
       setTodayData(todayResponse.data)
     } catch (error) {
@@ -55,11 +61,14 @@ export default function Dashboard() {
     ? (() => {
         let total = 0
         let completed = 0
-        Object.values(currentPlan.dailyPlans).forEach((dp) => {
-          dp.tasks.forEach((t) => {
-            total++
-            if (t.status === 'COMPLETED') completed++
-          })
+        Object.entries(currentPlan.dailyPlans).forEach(([date, dp]) => {
+          // 유효한 날짜인 경우에만 처리
+          if (isValid(parseISO(date)) && dp && dp.tasks) {
+            dp.tasks.forEach((t) => {
+              total++
+              if (t.status === 'COMPLETED') completed++
+            })
+          }
         })
         return total > 0 ? (completed / total) * 100 : 0
       })()
@@ -111,6 +120,11 @@ export default function Dashboard() {
             <div className="space-y-2">
               {currentPlan &&
                 Object.entries(currentPlan.dailyPlans)
+                  .filter(([date]) => {
+                    // 유효한 날짜 형식인지 확인 (yyyy-MM-dd)
+                    const parsed = parseISO(date)
+                    return isValid(parsed)
+                  })
                   .sort(([a], [b]) => a.localeCompare(b))
                   .slice(0, 5)
                   .map(([date, dp]) => {
@@ -119,10 +133,11 @@ export default function Dashboard() {
                       (t) => t.status === 'COMPLETED'
                     ).length
                     const rate = total > 0 ? (completed / total) * 100 : 0
+                    const parsedDate = parseISO(date)
                     return (
                       <div key={date} className="flex items-center gap-2 text-sm">
                         <span className="w-8">
-                          {format(parseISO(date), 'E', { locale: ko })}
+                          {format(parsedDate, 'E', { locale: ko })}
                         </span>
                         <Progress value={rate} className="h-2 flex-1" />
                         <span className="w-10 text-right text-gray-500">

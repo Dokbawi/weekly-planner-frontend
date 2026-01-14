@@ -57,6 +57,12 @@ const changeTypeConfig: Record<
 }
 
 export function ChangeTimeline({ changes }: ChangeTimelineProps) {
+  if (!changes || changes.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">변경 이력이 없습니다</div>
+    )
+  }
+
   const groupedChanges = changes.reduce(
     (acc, change) => {
       const date = change.targetDate
@@ -69,7 +75,7 @@ export function ChangeTimeline({ changes }: ChangeTimelineProps) {
 
   const sortedDates = Object.keys(groupedChanges).sort((a, b) => b.localeCompare(a))
 
-  if (changes.length === 0) {
+  if (sortedDates.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">변경 이력이 없습니다</div>
     )
