@@ -12,7 +12,7 @@ import { useNotificationStore } from '@/stores/notificationStore'
 import { notificationApi } from '@/api/notifications'
 
 export function NotificationDropdown() {
-  const { notifications, unreadCount, setNotifications, setUnreadCount, markAllAsRead } =
+  const { notifications, unreadCount, setNotifications, setUnreadCount, markAsRead, markAllAsRead } =
     useNotificationStore()
 
   useEffect(() => {
@@ -43,6 +43,15 @@ export function NotificationDropdown() {
     } catch (error) {
       console.error('Failed to load unread count:', error)
       setUnreadCount(0)
+    }
+  }
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await notificationApi.markAsRead(id)
+      markAsRead(id) // store 업데이트 (UI 반영)
+    } catch (error) {
+      console.error('Failed to mark as read:', error)
     }
   }
 
@@ -84,7 +93,11 @@ export function NotificationDropdown() {
         <div className="max-h-[400px] overflow-y-auto">
           {notifications && notifications.length > 0 ? (
             notifications.map((notification) => (
-              <NotificationItem key={notification.id} notification={notification} />
+              <NotificationItem
+                key={notification.id}
+                notification={notification}
+                onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
+              />
             ))
           ) : (
             <div className="py-8 text-center text-gray-500 text-sm">
