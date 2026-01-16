@@ -173,8 +173,15 @@ export default function Today() {
 
   const handleMemoSave = async () => {
     if (!currentPlan) return
+    // 빈 메모일 경우 저장하지 않음 (또는 삭제로 처리)
+    if (!memo.trim()) {
+      toast({ variant: 'destructive', title: '메모 내용을 입력하세요' })
+      return
+    }
     try {
       await planApi.updateMemo(currentPlan.id, { date: dateStr, memo })
+      // 메모 저장 후 plan 다시 로드하여 UI 갱신
+      await loadPlan()
       toast({ title: '메모가 저장되었습니다' })
     } catch (error) {
       console.error(error)

@@ -23,18 +23,26 @@ export function NotificationDropdown() {
   const loadNotifications = async () => {
     try {
       const response = await notificationApi.getList({ size: 5 })
-      setNotifications(response.data.content)
+      // 다양한 API 응답 구조 처리
+      const data = response?.data || response
+      const notifications = data?.content || data || []
+      setNotifications(Array.isArray(notifications) ? notifications : [])
     } catch (error) {
       console.error('Failed to load notifications:', error)
+      setNotifications([])
     }
   }
 
   const loadUnreadCount = async () => {
     try {
       const response = await notificationApi.getUnreadCount()
-      setUnreadCount(response.data.count)
+      // 다양한 API 응답 구조 처리
+      const data = response?.data || response
+      const count = data?.count ?? data ?? 0
+      setUnreadCount(typeof count === 'number' ? count : 0)
     } catch (error) {
       console.error('Failed to load unread count:', error)
+      setUnreadCount(0)
     }
   }
 

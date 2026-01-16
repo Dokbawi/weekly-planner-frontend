@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -66,6 +67,22 @@ export function TaskForm({ open, onClose, onSubmit, task, isEdit = false }: Task
   })
 
   const reminderEnabled = watch('reminderEnabled')
+
+  // task가 변경되면 폼 값을 업데이트 (수정 모드에서 기존 데이터 채우기)
+  useEffect(() => {
+    if (open) {
+      reset({
+        title: task?.title || '',
+        description: task?.description || '',
+        scheduledTime: task?.scheduledTime || '',
+        estimatedMinutes: task?.estimatedMinutes || undefined,
+        priority: task?.priority || 'MEDIUM',
+        reminderEnabled: task?.reminder?.enabled || false,
+        reminderMinutes: task?.reminder?.minutesBefore || 10,
+        reason: '',
+      })
+    }
+  }, [open, task, reset])
 
   const handleClose = () => {
     reset()

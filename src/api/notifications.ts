@@ -10,11 +10,31 @@ export const notificationApi = {
   getUnreadCount: (): Promise<ApiResponse<{ count: number }>> =>
     apiClient.get('/notifications/unread/count'),
 
-  // 알림 읽음 처리 (api-contract.md 기준 PUT)
-  markAsRead: (notificationId: string): Promise<void> =>
-    apiClient.put(`/notifications/${notificationId}/read`),
+  // 알림 읽음 처리 (api-contract.md 기준 PUT, 실패시 POST 시도)
+  markAsRead: async (notificationId: string): Promise<void> => {
+    try {
+      await apiClient.put(`/notifications/${notificationId}/read`)
+    } catch (error: any) {
+      // PUT이 지원되지 않으면 POST 시도
+      if (error?.response?.status === 404 || error?.response?.status === 405) {
+        await apiClient.post(`/notifications/${notificationId}/read`)
+      } else {
+        throw error
+      }
+    }
+  },
 
-  // 전체 알림 읽음 처리 (api-contract.md 기준 PUT)
-  markAllAsRead: (): Promise<void> =>
-    apiClient.put('/notifications/read-all'),
+  // 전체 알림 읽음 처리 (api-contract.md 기준 PUT, 실패시 POST 시도)
+  markAllAsRead: async (): Promise<void> => {
+    try {
+      await apiClient.put('/notifications/read-all')
+    } catch (error: any) {
+      // PUT이 지원되지 않으면 POST 시도
+      if (error?.response?.status === 404 || error?.response?.status === 405) {
+        await apiClient.post('/notifications/read-all')
+      } else {
+        throw error
+      }
+    }
+  },
 }

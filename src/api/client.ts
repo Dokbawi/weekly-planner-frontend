@@ -18,9 +18,6 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
-// 401 처리를 제외할 인증 관련 엔드포인트
-const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/refresh']
-
 apiClient.interceptors.response.use(
   (response) => response.data,
   async (error) => {

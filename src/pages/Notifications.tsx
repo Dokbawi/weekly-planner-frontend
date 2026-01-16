@@ -51,8 +51,9 @@ export default function Notifications() {
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       )
       try {
-        const unreadResponse = await notificationApi.getUnreadCount()
-        const count = unreadResponse?.data?.count ?? unreadResponse?.count ?? 0
+        const unreadResponse: any = await notificationApi.getUnreadCount()
+        const data = unreadResponse?.data || unreadResponse
+        const count = data?.count ?? 0
         setUnreadCount(count)
       } catch {
         // ignore count error
