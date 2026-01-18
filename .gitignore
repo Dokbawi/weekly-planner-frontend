@@ -29,3 +29,9 @@ dist-ssr
 
 # TypeScript build info
 *.tsbuildinfo
+
+# Claude Code temp files
+tmpclaude-*
+
+# Claude Code local settings
+.claude/settings.local.json
