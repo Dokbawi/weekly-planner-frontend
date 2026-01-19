@@ -57,7 +57,7 @@ VITE_API_URL=http://localhost:8080/api/v1
 
 - **보안 및 빌드 개선**
   - 프로덕션 빌드에서 console.log, debugger 자동 제거 (vite.config.ts esbuild.drop)
-  - `BACKEND_TODO.md` 추가: 백엔드 미구현 API 목록 관리
+  - `docs/backend-api-requests.md` 추가: 백엔드 미구현 API 요청 목록 (docs 서브모듈)
 
 ### 이전 변경사항 (2026-01-14)
 
@@ -99,6 +99,10 @@ VITE_API_URL=http://localhost:8080/api/v1
 - `docs/api-contract.md` - REST API 스펙
 - `docs/ui-spec.md` - 화면 명세
 - `docs/domain-model.md` - 도메인 모델 (타입 정의용)
+- `docs/backend-api-requests.md` - **백엔드 미구현 API 요청 목록** (중요!)
+
+> **Note:** 백엔드에 새로운 API가 필요하면 `docs/backend-api-requests.md`에 추가하고 docs 서브모듈을 푸시하세요.
+> 프론트엔드에서 직접 BACKEND_TODO.md 같은 파일을 만들지 않습니다.
 
 ## 구현된 주요 기능
 
