@@ -34,7 +34,7 @@ export default function Today() {
 
   useEffect(() => {
     setMemo(dailyPlan?.memo || '')
-  }, [dailyPlan])
+  }, [dailyPlan, dateStr])
 
   const loadPlan = async () => {
     setLoading(true)
@@ -189,6 +189,17 @@ export default function Today() {
     }
   }
 
+  const handleReorder = async (taskIds: string[]) => {
+    if (!currentPlan || !currentPlan.id) return
+    try {
+      await taskApi.reorder(currentPlan.id, dateStr, taskIds)
+      loadPlan()
+    } catch (error) {
+      console.error(error)
+      // 순서 변경 실패 시 조용히 무시 (백엔드 미지원 가능)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -222,6 +233,7 @@ export default function Today() {
         onEdit={setEditingTask}
         onMove={setMovingTask}
         onDelete={handleDeleteTask}
+        onReorder={handleReorder}
       />
 
       {/* 추가 버튼 */}

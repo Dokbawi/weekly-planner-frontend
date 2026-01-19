@@ -1,9 +1,8 @@
 export type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
 
 export interface UserSettings {
-  planningDay: DayOfWeek
-  reviewDay: DayOfWeek
-  weekStartDay: DayOfWeek
+  planningDay: number  // 0(일요일)~6(토요일) - 백엔드 API 스펙
+  reviewDay: number
   timezone: string
   defaultReminderMinutes: number
   notificationEnabled: boolean

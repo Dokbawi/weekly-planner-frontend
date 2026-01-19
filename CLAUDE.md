@@ -7,6 +7,7 @@ React + TypeScript 기반 웹 프론트엔드
 **구현 완료** ✅ - 2025년 12월 22일
 **API 통합 수정** 🔧 - 2025년 12월 28일
 **데이터 정규화 추가** 🔧 - 2026년 1월 14일
+**UI/UX 개선** 🔧 - 2026년 1월 19일
 
 모든 핵심 기능이 구현되었으며, 추가로 출퇴근 시간 계산 기능이 포함되었습니다.
 백엔드 API 스펙에 맞춰 프론트엔드 API 호출을 전면 수정했습니다.
@@ -39,7 +40,20 @@ npm run lint
 VITE_API_URL=http://localhost:8080/api/v1
 ```
 
-### 최근 변경사항 (2026-01-14)
+### 최근 변경사항 (2026-01-19)
+
+- **UI/UX 개선**
+  - 회원가입 비밀번호 조건 힌트 표시 ("8자 이상 입력하세요")
+  - 설정 페이지 저장 오류 수정 (planningDay/reviewDay 숫자 타입으로 변환)
+  - Today 페이지 Task 드래그 정렬 기능 추가 (@dnd-kit/sortable)
+  - 주간계획 반응형 UI 개선 (수평 스크롤, 컴팩트 Task 아이템)
+  - 일정 이동 시 POSTPONED 상태 Task 숨김 처리 (복사 아닌 이동으로 보이도록)
+
+- **알림 설정 유지 개선**
+  - `normalizeTask()` 함수 추가: 백엔드 `reminderMinutesBefore` → 프론트엔드 `reminder` 구조 변환
+  - 메모 저장 후 UI 동기화 개선
+
+### 이전 변경사항 (2026-01-14)
 
 - **데이터 정규화 로직 추가**
   - `normalizeDailyPlans()`: dailyPlans 배열 → 객체 변환 (plans.ts)
@@ -51,7 +65,7 @@ VITE_API_URL=http://localhost:8080/api/v1
   - 알림 API: 읽음 처리 PUT 메서드 사용 (api-contract.md 기준)
   - Task API: `reminderMinutesBefore` 필드 사용 (이전: `reminderMinutes`)
 
-### 이전 변경사항 (2025-12-28)
+### 이전 변경사항 (2025-12-28) - API 통합
 
 - **API 통합 수정**
   - JWT 토큰: `token` → `accessToken` 필드명 변경

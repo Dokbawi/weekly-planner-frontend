@@ -14,6 +14,8 @@ export interface Task {
   scheduledTime?: string
   estimatedMinutes?: number
   reminder?: ReminderSettings
+  // 백엔드 API에서 오는 필드 (reminderMinutesBefore)
+  reminderMinutesBefore?: number
   status: TaskStatus
   priority: Priority
   tags: string[]

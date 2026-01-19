@@ -35,3 +35,7 @@ tmpclaude-*
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Firebase service account key (sensitive)
+firebase-sa-key.json
+*-sa-key.json

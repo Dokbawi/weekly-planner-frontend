@@ -6,6 +6,24 @@ interface MemoRequest {
   memo: string
 }
 
+// 백엔드 Task를 프론트엔드 형식으로 변환 (reminderMinutesBefore → reminder)
+function normalizeTask(task: any): any {
+  if (!task) return task
+
+  // reminderMinutesBefore가 있으면 reminder 구조로 변환
+  const reminder = task.reminderMinutesBefore != null
+    ? { enabled: true, minutesBefore: task.reminderMinutesBefore }
+    : task.reminder || { enabled: false, minutesBefore: 10 }
+
+  return {
+    ...task,
+    reminder,
+    // 기본값 처리
+    tags: task.tags || [],
+    order: task.order ?? 0,
+  }
+}
+
 // 백엔드에서 dailyPlans가 배열로 올 수 있으므로 객체로 변환
 function normalizeDailyPlans(plan: any): WeeklyPlan {
   if (!plan) return plan
@@ -18,12 +36,25 @@ function normalizeDailyPlans(plan: any): WeeklyPlan {
         dailyPlansObj[dp.date] = {
           date: dp.date,
           dayOfWeek: dp.dayOfWeek || getDayOfWeek(dp.date),
-          tasks: dp.tasks || [],
+          tasks: (dp.tasks || []).map(normalizeTask),
           memo: dp.memo,
         }
       }
     })
     return { ...plan, dailyPlans: dailyPlansObj }
+  }
+
+  // dailyPlans가 이미 객체인 경우에도 task 정규화
+  if (plan.dailyPlans && typeof plan.dailyPlans === 'object') {
+    const normalizedDailyPlans: Record<string, DailyPlan> = {}
+    for (const [date, dp] of Object.entries(plan.dailyPlans)) {
+      const dailyPlan = dp as any
+      normalizedDailyPlans[date] = {
+        ...dailyPlan,
+        tasks: (dailyPlan.tasks || []).map(normalizeTask),
+      }
+    }
+    return { ...plan, dailyPlans: normalizedDailyPlans }
   }
 
   return plan

@@ -82,19 +82,22 @@ export function WeekCalendar({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-7 gap-2">
-        {weekDates.map((date) => (
-          <DayColumn
-            key={date}
-            date={date}
-            dailyPlan={plan.dailyPlans[date]}
-            onAddTask={onAddTask}
-            onStatusChange={onStatusChange}
-            onEditTask={onEditTask}
-            onMoveTask={onMoveTask}
-            onDeleteTask={onDeleteTask}
-          />
-        ))}
+      {/* 수평 스크롤 가능한 컨테이너 */}
+      <div className="overflow-x-auto pb-2">
+        <div className="grid grid-cols-7 gap-2 min-w-[800px]">
+          {weekDates.map((date) => (
+            <DayColumn
+              key={date}
+              date={date}
+              dailyPlan={plan.dailyPlans[date]}
+              onAddTask={onAddTask}
+              onStatusChange={onStatusChange}
+              onEditTask={onEditTask}
+              onMoveTask={onMoveTask}
+              onDeleteTask={onDeleteTask}
+            />
+          ))}
+        </div>
       </div>
 
       <DragOverlay>

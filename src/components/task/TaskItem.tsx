@@ -46,16 +46,24 @@ export function TaskItem({
   dragHandleProps,
 }: TaskItemProps) {
   const isCompleted = task.status === 'COMPLETED'
+  const isPostponed = task.status === 'POSTPONED'
+  const isCancelled = task.status === 'CANCELLED'
+  const isInactive = isCompleted || isPostponed || isCancelled
 
   const handleCheckChange = (checked: boolean) => {
     onStatusChange(checked ? 'COMPLETED' : 'PENDING')
+  }
+
+  // POSTPONED 상태인 Task는 숨김 처리 (다른 날로 이동된 Task)
+  if (isPostponed) {
+    return null
   }
 
   return (
     <div
       className={cn(
         'flex items-center gap-3 p-3 bg-white rounded-lg border transition-all',
-        isCompleted && 'opacity-60',
+        isInactive && 'opacity-60',
         isDragging && 'shadow-lg ring-2 ring-primary/20'
       )}
     >

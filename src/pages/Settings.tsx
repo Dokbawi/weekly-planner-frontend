@@ -16,26 +16,25 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { useAuthStore } from '@/stores/authStore'
 import { authApi } from '@/api/auth'
 import { useToast } from '@/hooks/useToast'
-import { DayOfWeek } from '@/types'
 
 interface SettingsFormData {
   name: string
-  planningDay: DayOfWeek
-  reviewDay: DayOfWeek
-  weekStartDay: DayOfWeek
+  planningDay: string  // 숫자(0-6)를 문자열로 저장
+  reviewDay: string
   timezone: string
   defaultReminderMinutes: number
   notificationEnabled: boolean
 }
 
-const dayOptions: { value: DayOfWeek; label: string }[] = [
-  { value: 'MONDAY', label: '월요일' },
-  { value: 'TUESDAY', label: '화요일' },
-  { value: 'WEDNESDAY', label: '수요일' },
-  { value: 'THURSDAY', label: '목요일' },
-  { value: 'FRIDAY', label: '금요일' },
-  { value: 'SATURDAY', label: '토요일' },
-  { value: 'SUNDAY', label: '일요일' },
+// 백엔드 API는 0(일요일)~6(토요일) 숫자 사용
+const dayOptions: { value: string; label: string }[] = [
+  { value: '0', label: '일요일' },
+  { value: '1', label: '월요일' },
+  { value: '2', label: '화요일' },
+  { value: '3', label: '수요일' },
+  { value: '4', label: '목요일' },
+  { value: '5', label: '금요일' },
+  { value: '6', label: '토요일' },
 ]
 
 export default function Settings() {
@@ -57,9 +56,8 @@ export default function Settings() {
       setUser(userData)
       reset({
         name: userData.name,
-        planningDay: userData.settings?.planningDay || 'SUNDAY',
-        reviewDay: userData.settings?.reviewDay || 'SATURDAY',
-        weekStartDay: userData.settings?.weekStartDay || 'MONDAY',
+        planningDay: String(userData.settings?.planningDay ?? 0),
+        reviewDay: String(userData.settings?.reviewDay ?? 6),
         timezone: userData.settings?.timezone || 'Asia/Seoul',
         defaultReminderMinutes: userData.settings?.defaultReminderMinutes || 10,
         notificationEnabled: userData.settings?.notificationEnabled ?? true,
@@ -75,9 +73,8 @@ export default function Settings() {
     setIsSaving(true)
     try {
       await authApi.updateSettings({
-        planningDay: data.planningDay,
-        reviewDay: data.reviewDay,
-        weekStartDay: data.weekStartDay,
+        planningDay: parseInt(data.planningDay, 10),
+        reviewDay: parseInt(data.reviewDay, 10),
         timezone: data.timezone,
         defaultReminderMinutes: data.defaultReminderMinutes,
         notificationEnabled: data.notificationEnabled,
@@ -115,7 +112,7 @@ export default function Settings() {
                 <Label>계획 수립 요일</Label>
                 <Select
                   value={watch('planningDay')}
-                  onValueChange={(value: DayOfWeek) => setValue('planningDay', value)}
+                  onValueChange={(value) => setValue('planningDay', value)}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -134,7 +131,7 @@ export default function Settings() {
                 <Label>회고 요일</Label>
                 <Select
                   value={watch('reviewDay')}
-                  onValueChange={(value: DayOfWeek) => setValue('reviewDay', value)}
+                  onValueChange={(value) => setValue('reviewDay', value)}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -148,25 +145,6 @@ export default function Settings() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>주 시작 요일</Label>
-              <Select
-                value={watch('weekStartDay')}
-                onValueChange={(value: DayOfWeek) => setValue('weekStartDay', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {dayOptions.map((day) => (
-                    <SelectItem key={day.value} value={day.value}>
-                      {day.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </CardContent>
         </Card>

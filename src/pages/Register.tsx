@@ -94,6 +94,7 @@ export default function Register() {
             <div className="space-y-2">
               <Label htmlFor="password">비밀번호</Label>
               <Input id="password" type="password" {...register('password')} />
+              <p className="text-xs text-gray-500">8자 이상 입력하세요</p>
               {errors.password && (
                 <p className="text-sm text-red-500">{errors.password.message}</p>
               )}
