@@ -21,7 +21,7 @@ export default function Today() {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [movingTask, setMovingTask] = useState<Task | null>(null)
   const [memo, setMemo] = useState('')
-  const { currentPlan, setPlan, isLoading, setLoading } = usePlanStore()
+  const { currentPlan, setPlan, updateTask, isLoading, setLoading } = usePlanStore()
   const { toast } = useToast()
 
   const dateStr = format(date, 'yyyy-MM-dd')
@@ -62,11 +62,27 @@ export default function Today() {
 
   const handleStatusChange = async (taskId: string, status: TaskStatus) => {
     if (!currentPlan || !currentPlan.id) return
+
+    // Optimistic Update: 먼저 UI 업데이트
+    const task = tasks.find((t) => t.id === taskId)
+    if (task) {
+      const updatedTask = {
+        ...task,
+        status,
+        completedAt: status === 'COMPLETED' ? new Date().toISOString() : undefined,
+      }
+      updateTask(dateStr, updatedTask)
+    }
+
     try {
       await taskApi.updateStatus(currentPlan.id, taskId, status)
-      loadPlan()
+      // 성공 시 별도 loadPlan 불필요 (이미 UI 업데이트됨)
     } catch (error) {
       console.error(error)
+      // 실패 시 원래 상태로 롤백
+      if (task) {
+        updateTask(dateStr, task)
+      }
       toast({ variant: 'destructive', title: '상태 변경 실패' })
     }
   }

@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   resolve: {
     alias: {
@@ -18,4 +18,8 @@ export default defineConfig({
       },
     },
   },
-})
+  esbuild: {
+    // 프로덕션 빌드에서 console.log, console.warn, debugger 제거
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
+}))
