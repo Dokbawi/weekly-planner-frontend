@@ -2,6 +2,21 @@
 
 React + TypeScript 기반 웹 프론트엔드
 
+## 관련 문서 (필수 참조)
+
+> **Important:** 이 프로젝트 작업 시 아래 문서들도 함께 참조하세요.
+
+| 문서 | 설명 | 우선순위 |
+|------|------|----------|
+| `docs/CLAUDE.md` | 공유 문서 작성 규칙 | 문서 수정 시 |
+| `docs/api-contract.md` | REST API 스펙 | API 호출 시 |
+| `docs/backend-api-requests.md` | 백엔드 미구현 API 요청 | 새 기능 개발 시 |
+| `docs/domain-model.md` | 엔티티/타입 정의 | 타입 수정 시 |
+
+**백엔드에 새 API가 필요하면:** `docs/backend-api-requests.md`에 추가 → docs 서브모듈 푸시
+
+---
+
 ## 프로젝트 상태
 
 **구현 완료** ✅ - 2025년 12월 22일
@@ -93,16 +108,7 @@ VITE_API_URL=http://localhost:8080/api/v1
 ## 프로젝트 개요
 
 주간 일정 관리 서비스의 웹 프론트엔드입니다.
-상세 스펙은 `docs/` 서브모듈을 참조하세요.
-
-### 참조 문서 (docs/ 서브모듈)
-- `docs/api-contract.md` - REST API 스펙
-- `docs/ui-spec.md` - 화면 명세
-- `docs/domain-model.md` - 도메인 모델 (타입 정의용)
-- `docs/backend-api-requests.md` - **백엔드 미구현 API 요청 목록** (중요!)
-
-> **Note:** 백엔드에 새로운 API가 필요하면 `docs/backend-api-requests.md`에 추가하고 docs 서브모듈을 푸시하세요.
-> 프론트엔드에서 직접 BACKEND_TODO.md 같은 파일을 만들지 않습니다.
+상세 스펙은 상단의 "관련 문서" 테이블을 참조하세요.
 
 ## 구현된 주요 기능
 
