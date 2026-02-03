@@ -4,6 +4,7 @@ export const ROUTES = {
   PLANNING: '/planning',
   REVIEW: '/review',
   NOTIFICATIONS: '/notifications',
+  TEMPLATES: '/templates',
   COMMUTE: '/commute',
   SETTINGS: '/settings',
   LOGIN: '/login',

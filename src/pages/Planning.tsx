@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, FileText, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { WeekCalendar } from '@/components/plan/WeekCalendar'
 import { PlanStatusBadge } from '@/components/plan/PlanStatusBadge'
@@ -13,6 +13,10 @@ import { usePlanStore } from '@/stores/planStore'
 import { planApi } from '@/api/plans'
 import { taskApi } from '@/api/tasks'
 import { Task, TaskStatus, CreateTaskRequest } from '@/types'
+import { WeeklyTemplate, ApplyMode } from '@/types/template'
+import { TemplateApplyDialog, SaveAsTemplateDialog } from '@/components/template'
+import { templateApi } from '@/api/templates'
+import { useTemplateStore } from '@/stores/templateStore'
 import { useToast } from '@/hooks/useToast'
 
 export default function Planning() {
@@ -22,12 +26,60 @@ export default function Planning() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [movingTask, setMovingTask] = useState<Task | null>(null)
+  const [isApplyOpen, setIsApplyOpen] = useState(false)
+  const [isSaveTemplateOpen, setIsSaveTemplateOpen] = useState(false)
+  const [applyingTemplate, setApplyingTemplate] = useState<WeeklyTemplate | null>(null)
+  const [isTemplateLoading, setIsTemplateLoading] = useState(false)
+  const { templates, setTemplates } = useTemplateStore()
   const { currentPlan, setPlan, isLoading, setLoading } = usePlanStore()
   const { toast } = useToast()
 
   useEffect(() => {
     loadPlan()
+    loadTemplates()
   }, [])
+
+  const loadTemplates = async () => {
+    try {
+      const response: any = await templateApi.getList()
+      const data = response?.data || response
+      setTemplates(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Failed to load templates:', error)
+    }
+  }
+
+  const handleApplyTemplate = async (templateId: string, mode: ApplyMode) => {
+    if (!currentPlan) return
+    setIsTemplateLoading(true)
+    try {
+      await templateApi.applyTemplate(currentPlan.id, templateId, mode)
+      await loadPlan()
+      setIsApplyOpen(false)
+      setApplyingTemplate(null)
+      toast({ title: '템플릿이 적용되었습니다' })
+    } catch (error) {
+      console.error(error)
+      toast({ variant: 'destructive', title: '템플릿 적용 실패' })
+    } finally {
+      setIsTemplateLoading(false)
+    }
+  }
+
+  const handleSaveAsTemplate = async (name: string, description?: string) => {
+    if (!currentPlan) return
+    setIsTemplateLoading(true)
+    try {
+      await templateApi.fromPlan(currentPlan.id, { name, description })
+      setIsSaveTemplateOpen(false)
+      toast({ title: '템플릿으로 저장되었습니다' })
+    } catch (error) {
+      console.error(error)
+      toast({ variant: 'destructive', title: '템플릿 저장 실패' })
+    } finally {
+      setIsTemplateLoading(false)
+    }
+  }
 
   const loadPlan = async () => {
     setLoading(true)
@@ -222,12 +274,30 @@ export default function Planning() {
           </Button>
         </div>
 
-        {currentPlan.status === 'DRAFT' && (
-          <Button onClick={() => setIsConfirmOpen(true)}>
-            <Check className="h-4 w-4 mr-2" />
-            확정하기
+        <div className="flex gap-2">
+          {currentPlan.status === 'DRAFT' && templates.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setApplyingTemplate(templates[0])
+                setIsApplyOpen(true)
+              }}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              템플릿 적용
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => setIsSaveTemplateOpen(true)}>
+            <Save className="h-4 w-4 mr-2" />
+            템플릿 저장
           </Button>
-        )}
+          {currentPlan.status === 'DRAFT' && (
+            <Button onClick={() => setIsConfirmOpen(true)}>
+              <Check className="h-4 w-4 mr-2" />
+              확정하기
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* 주간 캘린더 */}
@@ -295,6 +365,26 @@ export default function Planning() {
         onMove={handleMoveTaskDialog}
         task={movingTask}
         currentDate={currentPlan.weekStartDate}
+      />
+
+      {/* 템플릿 적용 다이얼로그 */}
+      <TemplateApplyDialog
+        open={isApplyOpen}
+        onClose={() => {
+          setIsApplyOpen(false)
+          setApplyingTemplate(null)
+        }}
+        onApply={handleApplyTemplate}
+        template={applyingTemplate}
+        isLoading={isTemplateLoading}
+      />
+
+      {/* 템플릿 저장 다이얼로그 */}
+      <SaveAsTemplateDialog
+        open={isSaveTemplateOpen}
+        onClose={() => setIsSaveTemplateOpen(false)}
+        onSave={handleSaveAsTemplate}
+        isLoading={isTemplateLoading}
       />
     </div>
   )

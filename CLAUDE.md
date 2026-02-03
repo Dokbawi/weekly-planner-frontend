@@ -94,6 +94,7 @@ src/
 │   ├── plan/         # WeekCalendar, DayColumn, ConfirmDialog
 │   ├── review/       # StatsSummary, CompletionChart, ChangeTimeline
 │   ├── notification/ # NotificationBadge, NotificationDropdown
+│   ├── template/     # TemplateList, TemplateForm, TemplateApplyDialog, SaveAsTemplateDialog
 │   └── commute/      # RoutineCard, RoutineForm, TimeCalculator
 ├── pages/            # Dashboard, Today, Planning, Review, Settings, Login, Register
 ├── stores/           # authStore, planStore, notificationStore, commuteStore
@@ -105,6 +106,7 @@ src/
 ```typescript
 // authStore - JWT 토큰 + persist (localStorage)
 // planStore - 현재 주간 계획, Task CRUD 액션
+// templateStore - 주간 템플릿 CRUD
 // notificationStore - 알림 상태
 // commuteStore - 출퇴근 루틴 (localStorage)
 ```
@@ -180,3 +182,6 @@ cd .. && git add docs && git commit -m "chore: update docs submodule"
 | 주간 캘린더 DnD | `src/components/plan/WeekCalendar.tsx` |
 | Task 정렬 DnD | `src/pages/Today.tsx` |
 | 변경 이력 타임라인 | `src/components/review/ChangeTimeline.tsx` |
+| 주간 템플릿 API | `src/api/templates.ts` |
+| 주간 템플릿 스토어 | `src/stores/templateStore.ts` |
+| 주간 템플릿 페이지 | `src/pages/Templates.tsx` |
