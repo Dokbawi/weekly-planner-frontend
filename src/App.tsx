@@ -10,6 +10,7 @@ import Review from '@/pages/Review'
 import Notifications from '@/pages/Notifications'
 import Settings from '@/pages/Settings'
 import Commute from '@/pages/Commute'
+import Templates from '@/pages/Templates'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="review" element={<Review />} />
           <Route path="review/:weekStartDate" element={<Review />} />
           <Route path="notifications" element={<Notifications />} />
+          <Route path="templates" element={<Templates />} />
           <Route path="commute" element={<Commute />} />
           <Route path="settings" element={<Settings />} />
         </Route>
